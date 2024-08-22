@@ -1,9 +1,9 @@
 <!-- components/LoginForm.vue -->
 <template>
-    <form class="form1" method="post" @submit.prevent="$emit('submit')">
+    <form class="form1" @submit.prevent="handleLogin">
       <h2>Sign In</h2>
-      <input type="email" placeholder="Email" />
-      <input type="password" placeholder="Password" />
+      <input type="email" v-model="form.email" placeholder="Email" required/>
+      <input type="password" v-model="form.password" placeholder="Password" required/>
       <a class="FP" @click="goToFP">Forgot your password?</a><br>
       <button class="btn88" type="submit">Sign In</button><br>
     </form>
@@ -11,13 +11,42 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
-    
-    const router1 = useRouter();
-    const goToFP = () => {
-      router1.push({ name: 'forgetPassword' });
+import { reactive } from 'vue';
+import axios from 'axios';
+
+  const router1 = useRouter();
+  const goToFP = () => {
+    router1.push({ name: 'forgetPassword' });
     }
- const emit = defineEmits(['submit']);
   document.body.style.overflowX = 'hidden';
+
+const router = useRouter();
+const form = reactive({
+  email: '',
+  password: ''
+});
+
+function handleLogin() {
+  // Send login data to the backend
+  axios.post('http://localhost:8000/api/login', form)
+    .then(response => {
+      const role = response.data.role;
+      // Store the token in localStorage 
+      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('userRole', role);
+      if (role === 'student') {
+        router.push({ name: 'StudentDashboard' });
+      } else if (role === 'teacher') {
+        router.push({ name: 'TeacherDashboard' });
+      } else {
+        alert('Unknown role. Cannot redirect.');
+      }
+    })
+    .catch(error => {
+      console.error('Login Error:', error.response ? error.response.data : error.message);
+      alert('Invalid credentials. Please try again.');
+    });
+}
 </script>
 
 <style>

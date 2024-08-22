@@ -64,12 +64,13 @@ const routes = [
 {
    path: '/StudentDashboard/',
    component: StudentDashboard ,
-   name: 'StudentDashboard'
+   name: 'StudentDashboard',
 },
 {
 path: '/TeacherDashboard/',
 component: TeacherDashboard ,
-name: 'TeacherDashboard'
+name: 'TeacherDashboard',
+
 },
 {
    path: '/ProjectForm/',
@@ -120,5 +121,24 @@ const router = createRouter({
    routes
 
 })
+router.beforeEach((to, from, next) => {
+   const authToken = localStorage.getItem('authToken');
+   const userRole = localStorage.getItem('userRole');
+   if (to.name === 'StudentDashboard') {
+      if (!authToken || userRole !== 'student') {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    } else if (to.name === 'TeacherDashboard') {
+      if (!authToken || userRole !== 'teacher') {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
+    } else {
+      next();
+    }
+ }); 
 
 export default router

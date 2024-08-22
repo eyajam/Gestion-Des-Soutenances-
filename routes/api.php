@@ -2,8 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController
-;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\studentController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -15,7 +15,15 @@ use App\Http\Controllers\UserController
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
-});
-Route::post('/SignUp', [UserController::class, 'storeUser']);
+}); 
+Route::post('/checkEmailExists', [UserController::class, 'checkEmailExists']);
+Route::post('/checkCinExists', [studentController::class, 'checkCinExists']);
+Route::post('/sendVerificationCode', [UserController::class, 'sendVerificationCode']);
+Route::post('/verify-code', [UserController::class, 'verifyCode']);
+Route::post('/registerUser', [UserController::class, 'registerUser']);
+Route::post('/login', [UserController::class, 'login']);
+
+
+
