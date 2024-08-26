@@ -253,18 +253,10 @@ function handleSubmit() {
           const decryptCode=response.data.verification_code;
           tempUserData.verification_code=decryptCode;
             axios.post('http://localhost:8000/api/registerUser', tempUserData)
-                .then((response) => {
+                .then(() => {
                     alert('Account verified and registered successfully! Log in now.');
                     localStorage.removeItem('tempUserData');
                     router.push({ name: 'login' });
-                    // const role = response.data.role;
-                    /* if (role === 'student') {
-            router.push({ name: 'StudentDashboard' });
-          } else if (role === 'teacher') {
-            router.push({ name: 'TeacherDashboard' });
-          } else {
-            alert('Unknown role. Cannot redirect.');
-          } */
                 })
                 .catch(error => {
                   console.error('Error registering user:', error.response.data);

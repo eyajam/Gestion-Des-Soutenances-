@@ -1,7 +1,7 @@
 <template>
     <div>
       <div class="dropdown">
-        <input type="text" class="input" id="dropdown" v-model="selected" readonly @click="toggleDropdown" required>
+        <input type="text" class="input" v-model="selected" readonly @click="toggleDropdown" required>
         <span class="arrow" @click="toggleDropdown">&#9660;</span>
         <ul v-if="isOpen" class="dropdown-menu">
           <li v-for="option in options" :key="option" @click="selectOption(option)">
@@ -60,7 +60,7 @@
     background-color: #fff;
     box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     z-index: 1;
-    width: 80%;
+    width: 90%;
     padding: 0;
     margin: 0;
     max-height: 135px; 
@@ -71,7 +71,6 @@
   .dropdown-menu li {
     padding: 10px;
     cursor: pointer;
-    
   }
   .dropdown-menu li:hover {
     background-color: #ddd;

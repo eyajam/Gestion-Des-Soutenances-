@@ -33,7 +33,9 @@ function handleLogin() {
       const role = response.data.role;
       // Store the token in localStorage 
       localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('userDetails', JSON.stringify(response.data.userDetails));
       localStorage.setItem('userRole', role);
+      localStorage.setItem('email',response.data.email);
       if (role === 'student') {
         router.push({ name: 'StudentDashboard' });
       } else if (role === 'teacher') {

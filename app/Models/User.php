@@ -27,21 +27,19 @@ class User extends Authenticatable implements MustVerifyEmail
         'verification_code',
         'is_verified'
     ];
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
+   
     protected $hidden = [
         'password',
         'remember_token',
     ];
+    public function student()
+    {
+        return $this->hasOne(Student::class, 'user_id'); // Assuming 'user_id' is the foreign key in the students table
+    }
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class, 'user_id'); // Assuming 'user_id' is the foreign key in the teachers table
+    }
     
 }

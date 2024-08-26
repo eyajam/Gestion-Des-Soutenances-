@@ -24,6 +24,12 @@ Route::post('/sendVerificationCode', [UserController::class, 'sendVerificationCo
 Route::post('/verify-code', [UserController::class, 'verifyCode']);
 Route::post('/registerUser', [UserController::class, 'registerUser']);
 Route::post('/login', [UserController::class, 'login']);
+//studentController
+Route::get('/student-info', [studentController::class, 'getLoggedInStudent']);
+Route::get('/students-by-specialty', [studentController::class, 'getStudentsBySpecialty']);
+Route::middleware('auth:sanctum')->post('/projects', [studentController::class, 'store']);
+
+
 
 
 

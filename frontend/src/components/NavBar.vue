@@ -7,10 +7,10 @@
       <div class="navbar-icon" v-if="isLoggedIn"> 
       <i class="fi fi-rs-circle-user"></i></div>
     </div> --> 
-    <div class="icon-container">
+    <div class="icon-container" v-if="isUserLoggedIn">
       <div class="navbar-icon" style="font-size: 20px; color: #ff5b3ec8;">
         <i class="fi fi-rr-bell-notification-social-media"></i></div>
-      <div class="navbar-icon" style="font-family: 'lato';">Eya Jammoussi</div>
+      <div class="navbar-icon" style="font-family: 'lato';">{{ user.firstName }} {{ user.lastName }}</div>
       <div class="navbar-icon" @click="toggleDropdown" style="font-size: 30px;"> 
         <i class="fi fi-rs-circle-user"></i></div>
     </div>
@@ -26,9 +26,19 @@
     
   </template>
   <script setup>
-  import { ref } from 'vue';
+  import { ref,onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
   import profileEdit from './profileEdit.vue';
- 
+
+  const isUserLoggedIn = ref(false);
+  const user = ref({
+  firstName: '',
+  lastName: ''
+  });
+  function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}
+
   const isDropdownVisible = ref(false);
   const isEditingProfile = ref(false);
   const emit = defineEmits(['profileEditVisibility']);
@@ -50,6 +60,25 @@
   const props = defineProps({
       visible: Boolean,
     });
+    const router = useRouter();
+onMounted(() => {
+  const authToken = localStorage.getItem('authToken'); 
+  if (authToken) {
+    isUserLoggedIn.value = true;
+    const userDetails = JSON.parse(localStorage.getItem('userDetails'));
+    if (userDetails) {
+      user.value.firstName =capitalizeFirstLetter(userDetails.firstName);
+      user.value.lastName =capitalizeFirstLetter(userDetails.lastName);
+    }
+  }
+});
+const signOut = () => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('userDetails');
+  localStorage.removeItem('userRole');
+  isUserLoggedIn.value = false;
+  router.push({ name: 'login' });
+};
 </script>
   
   <style scoped>

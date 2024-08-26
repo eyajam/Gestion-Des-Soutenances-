@@ -7,32 +7,32 @@
         </div>
         <div class="form-container">
          <div class="container1">
-           <div class="form-group">
-            <label for="title">Project title :</label>
-            <input class="input" id="title" v-model="form.title" type="text" required>
+          <div class="form-group">
+            <label for="AcademicSupervisor">Email Academic Supervisor :</label>
+            <Dropdown :modelValue="form.teacher_email" :options="teachers" @update:modelValue="updateTeachers" />
            </div>
            <div class="form-group">
             <label for="ProjectType">Project type :</label>
-            <Dropdown :modelValue="selectedProjectType" :options="ProjectType" @update:modelValue="updateProjectType" @change="handleProjectTypeChange"/>
+            <Dropdown :modelValue="form.ProjectType" :options="ProjectTypes" @update:modelValue="updateProjectType" @change="handleProjectTypeChange"/>
            </div>
             <div class="form-group" v-if="showPartnerField">
-             <label for="specialty">Full name partner :</label> <!-- mezlt chenzid listeBoxe des etudiants de sa spécialité -->
-             <input type="text" class="input" id="partner" v-model="form.partner" required>
+             <label for="partner">Email partner :</label> 
+             <Dropdown :modelValue="form.partner" :options="eStudents" @update:modelValue="updateStudent"  />
             </div>
          </div>
           <div class="container2">
             <div class="form-group">
             <label for="company">Company :</label>
-            <input class="input" id="company" v-model="form.company" type="text" required>
+            <input class="input" id="company" v-model="form.company" type="text">
            </div> 
            <div class="form-group">
-            <label for="AcademicSupervisor">Academic supervisor :</label>
-            <input class="input" id="AcademicSupervisor" v-model="form.AcademicSupervisor" type="text" required>
+            <label for="title">Project title :</label>
+            <input class="input" id="title" v-model="form.title" type="text">
            </div>
             <div class="form-group">
             <label class="file" for="specs"><i class="fi fi-tr-file-upload"></i>Upload specifications</label>
             <input type="file" id="specs" @change="handleFileUpload">
-            <span id="file-name"></span>
+            <span v-if="selectedFileName" style="font-size: 14px; font-family: 'lato';"><strong>Selected file :</strong> {{ selectedFileName }}</span>
             </div > 
          </div>
         </div>
@@ -42,59 +42,151 @@
     </div>
     </template>
       <script setup>
-      import { ref } from 'vue';
+      import { ref,onMounted } from 'vue';
       import Dropdown from '../components/DropDown.vue';
       import axios from 'axios';
-
-      const selectedProjectType = ref('');
-      const ProjectType =['binomial','monomial'];
-      const updateProjectType = (newProjectType) => {
-       selectedProjectType.value = newProjectType;
-      };
-
-      const showPartnerField = ref(false);
-      const handleProjectTypeChange = (value) => {
-        showPartnerField.value = (value === 'binomial');
-      };
           
       const form = ref({
-        specialty: '',
         ProjectType: '',
         partner: '',
         company:'',
         title: '',
         specs: null,
-        AcademicSupervisor: '',  
+        teacher_email: '',  
       });
       
-      function handleSubmit() {
-        const dataToSend = {
-        firstname: form.value.firstname,
-        lastname: form.value.lastname,
-        specialty: form.value.specialty,
-        ProjectType: form.value.ProjectType,
-        title: form.value.title,
-        AcademicSupervisor: form.value.AcademicSupervisor,
-        ase: form.value.ase
+      const ProjectTypes =['binomial','monomial'];
+      const updateProjectType = (newProjectType) => {
+       form.value.ProjectType = newProjectType;
+       handleProjectTypeChange(newProjectType);
       };
-      axios.post('http://localhost:8000/api/signUp', dataToSend)
-        .then(response => {
-          // Traitement en cas de succès
-          console.log('Registration Success:', response.data);
-          alert('Registration successful!');
-        })
-        .catch(error => {
-          // Traitement en cas d'erreur
-          console.error('Registration Error:', error);
-          alert('An error occurred during registration.');
-        });
+      
+      const teachers =['AnouerBennajeh@gmail.com','hadhemiAchour@gmail.com','bayoudhiChawki@gmail.com'];
+      const updateTeachers = (newTeacher) => {
+        form.value.teacher_email = newTeacher;
+      };
+      const showPartnerField = ref(false);
+      const handleProjectTypeChange = (value) => {
+        showPartnerField.value = (value === 'binomial');
+      };
+
+      const currentUserEmail = ref('');
+      const currentUserSpecialty = ref('');
+
+      
+      const eStudents =ref([]);
+      const updateStudent = (newPartner) => {
+       form.value.partner = newPartner;
+      };
+      let email = localStorage.getItem('email');
+      
+      const fetchStudentsBySpecialty = async () => {
+    try {
+    // Fetch logged-in student's email and specialty from the backend
+    const studentSpecialty = await axios.get('http://localhost:8000/api/student-info',{params: {
+                email: email
+            }});
+    currentUserEmail.value = email;
+    currentUserSpecialty.value = studentSpecialty.data.specialty;
+    const response = await axios.get(`http://localhost:8000/api/students-by-specialty`, {
+      params: {
+        specialty: currentUserSpecialty.value,
+        email: currentUserEmail.value,
       }
-    function  handleFileUpload(event) {
-    const fileInput = event.target;
-    const fileName = fileInput.files[0] ? fileInput.files[0].name : '';
-    document.getElementById('file-name').textContent = fileName;
-  };
-      </script>
+    });
+    if (response.status === 200 && Array.isArray(response.data)) {
+      eStudents.value = response.data;
+      console.log(response.data);
+    } else {
+      console.error('Unexpected response format:', response);
+      eStudents.value = []; // Fallback to empty array
+    }
+  } catch (error) {
+    console.error('Failed to fetch students:', error);
+    alert('Failed to retrieve the student list. Please try again later.');
+    eStudents.value = []; // Fallback to empty array
+  }
+};
+
+// Fetch the student emails when the component is mounted or when "binomial" is selected
+onMounted(() => {
+  fetchStudentsBySpecialty(); // Fetch the data when the component mounts
+});
+
+const selectedFileName = ref('');
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    form.value.specs = file;  
+    selectedFileName.value = file.name;  // Store the file name to display it
+  } else {
+    form.value.specs= null;
+    selectedFileName.value = '';  // Clear file name if no file is selected
+  }
+};
+const validateForm = () => {
+  // Clear errors
+  let errors = [];
+
+  if (form.value.title && form.value.title.length > 255) {
+    errors.push('Project title must be less than 255 characters.');
+  }
+
+  if (!form.value.ProjectType) {
+    errors.push('Project type is required.');
+  } 
+
+  if (showPartnerField.value && !form.value.partner) {
+    errors.push('Partner is required.');
+  } 
+
+  if (form.value.company && form.value.company.length > 255) {
+    errors.push('Company name must be less than 255 characters.');
+  }
+
+  if (form.value.teacher_email && form.value.teacher_email.length > 255) {
+    errors.push('Teacher name must be less than 255 characters.');
+  }
+
+  if (form.value.specs && form.value.specs.name && typeof form.value.specs.name === 'string') {
+  const fileExtension = form.value.specs.name.split('.').pop().toLowerCase();
+  if (!['pdf', 'doc', 'docx'].includes(fileExtension)) {
+    errors.push('Invalid file type. Only PDF, DOC, and DOCX files are allowed.');
+  }
+}
+  // Affichage des erreurs s'il y en a
+  if (errors.length > 0) {
+    alert(errors.join('\n'));
+    return false;
+  }
+  return true;
+};
+
+const handleSubmit = async () => {
+ 
+  const formData = new FormData();
+  formData.append('project_type', form.value.ProjectType);
+  if (showPartnerField.value && form.value.partner) {
+    formData.append('partner', form.value.partner);
+  }
+  formData.append('company', form.value.company || '');
+  formData.append('title', form.value.title || '');
+  formData.append('teacher_email', form.value.teacher_email || '');
+  if (form.value.specs) {
+    formData.append('specs', form.value.specs);
+  }
+  try {
+    const authToken = localStorage.getItem('authToken');
+    const response = await axios.post('http://localhost:8000/api/projects', formData, {
+      headers: { 'Authorization': `Bearer ${authToken}`,
+         'Content-Type': 'multipart/form-data' },
+    });
+    alert('Project stored successfully');
+    console.log('Project stored successfully:', response.data);
+  } catch (error) {
+    console.error('Failed to store project:', error);
+  }}
+</script>
     <style >
     .home{
     position: relative;

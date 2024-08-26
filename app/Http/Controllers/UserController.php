@@ -115,9 +115,7 @@ public function registerUser(Request $request)
         'password' =>bcrypt($request->password),
     ]);
     return response()->json([
-        'message' => 'Registration successful',
-        'role' => $user->role,
-        
+        'message' => 'Registration successful',   
     ]);
 }
 public function login(Request $request)
@@ -126,10 +124,16 @@ public function login(Request $request)
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
         $token=$user->createToken('authToken')->plainTextToken;
+
         return response()->json([
             'message' => 'Login successful',
             'role' => $user->role,
+            'email'=> $user->email,
             'token' => $token, 
+            'userDetails' => [
+                'firstName' => $user->name, 
+                'lastName' => $user->lastName   
+            ]
         ]);
     } else {
         return response()->json(['message' => 'Invalid credentials'], 401);

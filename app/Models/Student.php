@@ -10,7 +10,7 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_id',
+        'user_id',
         'first_name',
         'last_name',
         'number',
@@ -20,8 +20,16 @@ class Student extends Model
         'email',
         'password'
     ];
-
     protected $hidden = [
         'password',
     ];
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+    public function project()
+{
+    return $this->hasOne(Project::class, 'student_id', 'user_id');
+}
+
 }
