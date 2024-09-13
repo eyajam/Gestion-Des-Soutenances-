@@ -15,8 +15,9 @@ class Project extends Model
         'partner',
         'company',
         'teacher_email',
-        'specs'
-    ];
+        'specs',
+        'original_filename'];
+   
 public function student()
     {
     return $this->belongsTo(Student::class, 'student_id', 'user_id');

@@ -13,9 +13,9 @@ use App\Http\Controllers\Auth\CustomVerificationController;
 | contains the "web" middleware group. Now create something great!
 |
 */
-Route::get('/', function () {
+Route::get('/{any?}', function () {
     return view('welcome');
-});
+ });
 // Auth::routes(['verify' => true]);
 
 /* // Routes de vérification d'email personnalisées

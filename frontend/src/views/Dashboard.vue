@@ -6,11 +6,11 @@
         </div>
         <ul class="nav-links">
           <li>
-            <router-link to="/stats" class="nav-item">
+            <router-link to="/dashboard/stats" class="nav-item">
               <i class="fi fi-tr-stats dash" style="margin-right: 10px;  font-size: 17px;"></i>Dashboard</router-link>
           </li>
           <li>
-            <router-link to="/complaints" class="nav-item">
+            <router-link to="/dashboard/complaints" class="nav-item">
               <i class="fi fi-tr-newspaper dash" style="margin-right: 10px; font-size: 17px;"></i>Complaints</router-link>
           </li>
          <!--  <li>
@@ -18,7 +18,7 @@
               <i class="fi fi-ts-workshop dash" style="margin-right: 10px; font-size: 17px;"></i>Supervision Request</router-link>
           </li> -->
           <li>
-            <router-link to="/users" class="nav-item">
+            <router-link to="/dashboard/users" class="nav-item">
               <i class="fi fi-tr-users-alt dash" style="margin-right: 10px;font-size: 17px;"></i>Users</router-link>
           </li>
           <!-- <li>
@@ -26,7 +26,7 @@
               <i class="fi fi-rr-download dash" style="margin-right: 10px;font-size: 17px;"></i>Projects Submitted</router-link>
           </li> -->
           <li>
-            <router-link to="/superviseAssign" class="nav-item">
+            <router-link to="/dashboard/superviseAssign" class="nav-item">
               <i class="fi fi-tr-student-alt dash" style="margin-right: 10px;font-size: 17px;"></i>Supervision Requests & <br>Project Assignments</router-link>
           </li>
         </ul>
@@ -34,17 +34,36 @@
           <router-link to="/" class="nav-item-plan">
             <i class="fi fi-tr-ballot plan" style="margin-right: 10px;font-size: 17px;"></i>Generate Planning</router-link>
         </div>
+        <div class="logout" @click="logout">
+          <i class="fi fi-br-arrow-left-from-arc" ></i><div style="position: relative; bottom: 3px; font-family: 'lato';"><strong>Logout</strong></div> 
+        </div>
       </nav>
       <router-view class="content"/>
     </div>   
   </template>
   
   <script setup>
-  
+  import { useRouter } from 'vue-router';
+  const router = useRouter();
+  const logout = () => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('userDetails');
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('email');
+  router.push({ name: 'login' });
+};
 
   </script>
   
   <style scoped>
+  .logout{
+    position: relative;
+    right: 10px; 
+    bottom: 30px;
+    gap: 8px;
+    display: flex;
+    cursor: pointer;
+  }
   .content {
   flex-grow: 1;
   padding: 20px;

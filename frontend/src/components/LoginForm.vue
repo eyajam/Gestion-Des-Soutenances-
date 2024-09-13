@@ -36,17 +36,20 @@ function handleLogin() {
       localStorage.setItem('userDetails', JSON.stringify(response.data.userDetails));
       localStorage.setItem('userRole', role);
       localStorage.setItem('email',response.data.email);
+      
       if (role === 'student') {
         router.push({ name: 'StudentDashboard' });
       } else if (role === 'teacher') {
         router.push({ name: 'TeacherDashboard' });
+      } else if (role === 'admin') {
+        router.push({ name: 'Dashboard' });
       } else {
         alert('Unknown role. Cannot redirect.');
       }
     })
     .catch(error => {
       console.error('Login Error:', error.response ? error.response.data : error.message);
-      alert('Invalid credentials. Please try again.');
+      //alert('Invalid credentials. Please try again.');
     });
 }
 </script>

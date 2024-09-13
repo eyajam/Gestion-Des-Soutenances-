@@ -28,8 +28,13 @@ class Student extends Model
         return $this->belongsTo(User::class);
     }
     public function project()
-{
+    {
     return $this->hasOne(Project::class, 'student_id', 'user_id');
-}
+    }
+    public function complaints()
+    {
+    return $this->hasMany(Complaint::class, 'user_id', 'user_id');
+    }
+
 
 }

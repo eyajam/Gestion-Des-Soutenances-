@@ -10,7 +10,7 @@
     <div class="icon-container" v-if="isUserLoggedIn">
       <div class="navbar-icon" style="font-size: 20px; color: #ff5b3ec8;">
         <i class="fi fi-rr-bell-notification-social-media"></i></div>
-      <div class="navbar-icon" style="font-family: 'lato';">{{ user.firstName }} {{ user.lastName }}</div>
+      <div class="navbar-icon" style="font-family: 'lato'; font-size: 17px;">{{ user.firstName }} {{ user.lastName }}</div>
       <div class="navbar-icon" @click="toggleDropdown" style="font-size: 30px;"> 
         <i class="fi fi-rs-circle-user"></i></div>
     </div>
@@ -76,6 +76,7 @@ const signOut = () => {
   localStorage.removeItem('authToken');
   localStorage.removeItem('userDetails');
   localStorage.removeItem('userRole');
+  localStorage.removeItem('email');
   isUserLoggedIn.value = false;
   router.push({ name: 'login' });
 };

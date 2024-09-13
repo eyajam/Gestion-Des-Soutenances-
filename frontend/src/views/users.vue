@@ -19,9 +19,8 @@
         <thead>
           <tr>
             <th><input type="checkbox" @change="toggleAll" /></th>
-            <th>Name</th>
+            <th>Full name</th>
             <th>Role</th>
-            <!-- <th>Status</th> -->
             <th>Actions</th>
           </tr>
         </thead>
@@ -30,18 +29,13 @@
             <td><input type="checkbox" v-model="user.selected" /></td>
             <td class="user-info">
               <div>
-                <div class="user-name">{{ user.name }}</div>
+                <div class="user-name">{{ user.name }} {{ user.lastName }}</div>
                 <div class="user-email">{{ user.email }}</div>
               </div>
             </td>
-            <td>{{ user.Role }}</td>
-            <!-- <td>
-              <span :class="{'status-active': user.status === 'Active', 'status-inactive': user.status === 'Inactive'}">
-                {{ user.status }}
-              </span>
-            </td -->
+            <td>{{ user.role }}</td>
             <td>
-              <button class="edit-user" @click="openModal(user.Role)"><i class="fi fi-rr-user-pen" style="position: relative; top: 2px; margin-right: 5px;"></i>Edit user</button>
+              <button class="edit-user" @click="openModal(user.id)"><i class="fi fi-rr-user-pen" style="position: relative; top: 2px; margin-right: 5px;"></i>Edit user</button>
               <button class="delete-user" @click="deleteUser(user)"><i class="fi fi-sr-trash" style="position: relative; top: 2px; margin-right: 5px;"></i>Delete user</button>
             </td>
           </tr>
@@ -52,7 +46,7 @@
        <div class="modal-content" @click.stop>
        <span class="close" @click="closeModal">&times;</span>
        <h2>Edit User</h2>
-      <form >
+      <form @submit.prevent="updateUser" >
         <div class="firstSecondC">
          <div class="firstContainer">
           <div class="group">
@@ -63,44 +57,36 @@
             <label class="EUA" for="lastname">Last Name :</label>
             <input class="champ" id="lastname" v-model="form.lastname" type="text" required>
           </div>
-          <div v-if="userType === 'teacher'" class="group">
-            <label class="EUA" for="lastname">Grade :</label>
-            <input class="champ" type="text" id="grade" v-model="form.grade" required/> 
-          </div>
           <div v-if="userType === 'student'" class="group">
             <label class="EUA" for="cin">CIN student :</label>
             <input type="text" class="champ" id="cin" v-model="form.cin" required>
           </div>
           <div v-if="userType === 'student'" class="group">
-            <label class="EUA" for="cin">Status (new or repeating) :</label>
-            <input type="text" class="champ" id="CIN" v-model="form.status" required>
-          </div>
-          <div v-if="userType === 'student'" class="group">
-            <label class="EUA" for="specialty">Specialty :</label>
-            <input class="champ" id="specialty" v-model="form.specialty" type="text"/>
+            <label class="EUA" for="status">Status (new or repeating) :</label>
+            <input type="text" class="champ" id="status" v-model="form.status" required>
           </div>
         </div>
           <div class="secondContainer">
+            <div v-if="userType === 'student'" class="group">
+            <label class="EUA" for="specialty">Specialty :</label>
+            <input class="champ" id="specialty" v-model="form.specialty" type="text"/>
+          </div>
+          <div v-if="userType === 'teacher'" class="group">
+            <label class="EUA" for="grade">Grade :</label>
+            <input class="champ" type="text" id="grade" v-model="form.grade" required/> 
+          </div>
             <div v-if="userType === 'student'"class="group">
-              <label class="EUA" for="cin">Phone number :</label>
+              <label class="EUA" for="number">Phone number :</label>
               <input type="text" class="champ" id="number" v-model="form.number" required>
             </div> 
             <div class="group">
               <label class="EUA" for="email">Email :</label>
               <input class="champ" id="email" v-model="form.email" type="email" required>
             </div>
-            <div class="group">
-              <label class="EUA" for="password">Password :</label>
-              <input class="champ" id="password" v-model="form.password" type="password" required>
-            </div>
-            <div class="group">
-              <label class="EUA" for="password">Confirm your password :</label>
-              <input class="champ" id="password_confirmation" v-model="form.passwordConfirmation" type="password" required>
-            </div>
           </div>
         </div>
-      </form>
       <div class="btn-MAJ"><button type="submit" class="MAJ">update</button></div> 
+    </form>
       </div>
       </div>
     <div v-if="state.isAddUserModalOpen" class="modal-overlay" @click="closeAddUserModal"></div>
@@ -179,15 +165,19 @@
 </template>
   
   <script setup>
-  import { ref, computed , reactive } from 'vue';
-  
-   const users = ref([
-    { name: 'Neil Sims', email: 'neil.sims@flowbite.com', Role: 'student',  selected: false },
-    { name: 'Roberta Casas', email: 'roberta.casas@flowbite.com', Role: 'teacher', selected: false },
-    { name: 'Michael Gough', email: 'michael.gough@flowbite.com', Role: 'teacher', selected: false },
-    { name: 'Jese Leos', email: 'jese.leos@flowbite.com', Role: 'student', selected: false },
-    { name: 'Jese Leos', email: 'jese.leos@flowbite.com', Role: 'student', selected: false },
-  ]); 
+  import { ref, computed , reactive,onMounted } from 'vue';
+  import axios from 'axios';
+
+  const authToken = localStorage.getItem('authToken');
+  const users = ref([]); 
+  const fetchUsers = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/users',{ headers: { 'Authorization': `Bearer ${authToken}`}}); 
+    users.value = response.data; // Stocker les utilisateurs récupérés
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs:', error);
+  }
+};
   const userType = ref('');
   const form = ref({
     firstname: '',
@@ -198,9 +188,6 @@
     grade:'',
     number:'',
     email: '',
-    password: '',
-    passwordConfirmation: '',
-    Role: ''
   });
   const searchQuery = ref('');
   
@@ -225,9 +212,47 @@ const deleteSelectedUsers = () => {
 
 const isModalOpen = ref(false);
 
-const openModal = (role) => {
-  userType.value = role;
+const openModal = async (userId) => {
   isModalOpen.value = true;
+  try {
+    const response = await axios.get(`http://localhost:8000/api/user/${userId}`,{ headers: { 'Authorization': `Bearer ${authToken}`}});
+    const data = response.data;
+
+    form.value.firstname = data.user.name;
+    form.value.lastname = data.user.lastName;
+    form.value.email = data.user.email;
+    
+    if (data.type === 'teacher') {
+      form.value.grade = data.details.grade;
+      userType.value = 'teacher';
+    } else if (data.type === 'student') {
+      form.value.cin = data.details.cin;
+      form.value.status = data.details.status;
+      form.value.specialty = data.details.specialty;
+      form.value.number = data.details.number;
+      userType.value = 'student';
+    }
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+  }
+};
+const updateUser = async () => {
+  try {
+    const response = await axios.put(`http://localhost:8000/api/updateUser/${userId}`, { headers: { 'Authorization': `Bearer ${authToken}`}},
+    { firstname: form.value.firstname,
+      lastname: form.value.lastname,
+      cin: form.value.cin,
+      status: form.value.status,
+      specialty: form.value.specialty,
+      grade: form.value.grade,
+      number: form.value.number,
+      email: form.value.email,}
+    );
+    console.log('User updated successfully', response.data);
+    alert('User updated successfully');
+  } catch (error) {
+    console.error('Error updating user:', error.response.data);
+  }
 };
 
 const closeModal = () => {
@@ -261,7 +286,10 @@ function openAddUserModal() {
 function closeAddUserModal() {
   state.isAddUserModalOpen = false;
 }
+onMounted(() => {
+  fetchUsers(); 
 
+});
   </script>
   
   <style scoped>

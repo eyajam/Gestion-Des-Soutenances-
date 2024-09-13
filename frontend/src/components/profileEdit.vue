@@ -51,36 +51,87 @@
        </div>
      </div>
    </form>
-   <div class="btn-MAJ"><button type="submit" class="MAJ">update</button></div> 
+   <div class="btn-MAJ"><button type="submit" @click="updateUserData" class="MAJ">update</button></div> 
    </div>
  </div>
 </template>
 <script setup>
-import { ref } from 'vue';
- const userType = ref('');
+import { ref,watch } from 'vue';
+import axios from 'axios';
+
+ const userType = localStorage.getItem('userRole');
+ const authToken = localStorage.getItem('authToken');
  const emit = defineEmits(['close']);
- // Mock user profile data
+
   const form = ref({
-    firstname: 'Eya',
-    lastname: 'Jammoussi',
-    cin: '14514481',
-    status:'new',
-    specialty: 'BIS',
-    grade:'professor',
-    number:'22023180',
-    email: 'eya@gmail.com',
-    password: 'azerty',
-    passwordConfirmation: 'azerty',
+    firstname: '',
+    lastname: '',
+    cin: '',
+    status:'',
+    specialty: '',
+    grade:'',
+    number:'',
+    email: '',
+    password: '',
+    passwordConfirmation: '',
 
   });
   const props = defineProps({
   visible: Boolean,
 });
+const fetchUserData = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/user', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    const userData = response.data;
+
+    form.value.firstname = userData.name;
+    form.value.lastname = userData.lastName;
+    form.value.cin = userData.cin;
+    form.value.status = userData.status;
+    form.value.specialty = userData.specialty;
+    form.value.grade = userData.grade;
+    form.value.number = userData.number;
+    form.value.email = userData.email;
+
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+  }
+};
+
+watch(() => props.visible, (newVal) => {
+  if (newVal) {
+    fetchUserData();
+  }
+});
 const closeModal = () => {
   emit('close'); // Emit a 'close' event to the parent
 };
-
-
+const updateUserData = async () => {
+  try {
+    await axios.put('http://localhost:8000/api/userEdit', {
+      firstname: form.value.firstname,
+      lastname: form.value.lastname,
+      cin: form.value.cin,
+      status: form.value.status,
+      specialty: form.value.specialty,
+      grade: form.value.grade,
+      number: form.value.number,
+      email: form.value.email,
+      password: form.value.password,
+      password_confirmation: form.value.passwordConfirmation,
+    }, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    alert('User information updated successfully');
+    closeModal();
+  } catch (error) {
+    console.error('Error updating user data:', error);
+    alert('An error occurred while updating your information.');
+  }
+};
 </script>
    <style scoped>
  .modal {

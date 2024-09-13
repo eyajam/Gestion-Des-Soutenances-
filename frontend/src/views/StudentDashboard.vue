@@ -95,9 +95,11 @@ import NavBar from '../components/NavBar.vue';
 import new_footer from '../components/new_footer.vue';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 
 const router = useRouter();
 const isProfileEditing = ref(false); // Pour contrôler le flou
+const authToken = localStorage.getItem('authToken');
 
 const handleProfileEditVisibility = (isVisible) => {
   isProfileEditing.value = isVisible;
@@ -108,9 +110,30 @@ const goToProjectForm = () => {
 const goToComplaint = () => {
   router.push({ name: 'complaint' });
 }
-const goToEditProjectForm = () => {
-  router.push({ name: 'EditProjectForm' });
-}
+const goToEditProjectForm = async () => {
+  try {
+    const response = await axios.get(`http://localhost:8000/api/check-edit-form-complaint`,{
+      headers: { 'Authorization': `Bearer ${authToken}` }});
+    const complaint = response.data; 
+    
+    if (!complaint || Object.keys(complaint).length === 0) {
+      alert('Vous devez d\'abord soumettre une réclamation de type "editForm" pour pouvoir mettre à jour votre formulaire.');
+      return;
+    }
+    const status = complaint.status;
+
+    if (status === 'approved') {
+      router.push({ name: 'EditProjectForm' });
+    } else if (status === 'in_process') {
+      alert('Votre réclamation est en cours de traitement.');
+    } else if (status === 'disapproved') {
+      alert('Votre réclamation a été refusée.');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification de la réclamation', error);
+    alert('Une erreur est survenue lors de la vérification de votre réclamation.');
+  }
+};
 document.body.style.overflowX = 'hidden';
 const currentStep = ref(0);
 const steps = ref([

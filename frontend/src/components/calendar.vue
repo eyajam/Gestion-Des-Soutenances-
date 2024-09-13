@@ -8,7 +8,12 @@
     </div>
     <div class="calendar-grid">
       <div v-for="day in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" class="day-header" :key="day">{{ day }}</div>
-      <div v-for="day in calendarDays" :key="day" :class="['day', getEventForDate(new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), day)).toISOString().split('T')[0])?.type, { today: isToday(day) }]" @click="selectDate(day)">
+      <div v-for="day in calendarDays" :key="day" 
+        :class="['day', 
+              { 'highlighted': getEventForDate(new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), day)).toISOString().split('T')[0]), 
+                'today': isToday(day) 
+              }]"
+        @click="selectDate(day)">
         {{ day }}
       </div>
     </div>
@@ -16,11 +21,11 @@
    </div>
    <div class="availibilities">
       <h3 class="YA">Your availabilities</h3>
-      <div class="events">
+       <div class="events">
         <p class="event" :class="{ highlighted: selectedEvent === 'Today' }" @click="highlight('Today')">Today</p>
         <p class="event" :class="{ highlighted: selectedEvent === 'Week' }" @click="highlight('Week')">Week</p>
         <p class="event" :class="{ highlighted: selectedEvent === 'Month' }" @click="highlight('Month')">Month</p>
-      </div>
+      </div> 
       <div v-if="(showAddEventForm && eventsForSelectedDate.length === 0)||(showAddAV)" class="add-event-box">
         <div style="position: relative; left: 72px; color: #701600; cursor: pointer;" @click="closeForm">&#10006;</div>
         <h4 style="color: #b03d00b1; margin: 0 0 14px;"> {{ selectedDate }}</h4>
@@ -40,7 +45,8 @@
           <i class="fi fi-tr-calendar-clock" style="color: white; font-size: 15px; position: relative; right: 8px;"></i>
         </div>
         <div class="addAV">
-          <i class="fi fi-rr-add" @click="addEvent"></i>
+          <i class="fi fi-sr-floppy-disk-circle-arrow-right" v-if="currentEvent" @click="saveChanges"></i>
+          <i class="fi fi-rr-add" v-else @click="addEvent"></i>
         </div>
       </div>
       <div v-else>
@@ -50,8 +56,8 @@
             <i class="fi fi-sr-map-marker-plus icon" style="margin-left:10px; color: #F4F3E6;" @click="showAddAVForm"></i></h4>
           <li v-for="event in eventsForSelectedDate" :key="event.id" class="AVS">
             <div class="AV" >
-            {{ event.type }} : <br>
-            {{ event.startTime }} - {{ event.endTime }} </div>
+            {{ event.status }} : <br>
+            {{ formatTime(event.start_time) }} - {{ formatTime(event.end_time) }} </div>
             <div class="icon-container">
             <i class="fi fi-sr-pen-circle icon" style=" color: #e8e4c8;" @click="editEvent(event)"></i>
             <i class="fi fi-sr-cross-circle icon" style="color: #e85234;"@click="removeEvent(event)"></i></div>
@@ -64,7 +70,8 @@
 </template> 
 
  <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch ,onMounted} from 'vue';
+import axios from 'axios';
 
 const currentDate = ref(new Date());
 const selectedDate = ref(null);
@@ -75,9 +82,12 @@ const events = ref([]);
 const showAddEventForm = ref(false);
 const selectedEvent = ref('Today');
 const showAddAV =ref(false);
-let eventId = 0;
 const currentEvent = ref(null);
+const authToken = localStorage.getItem('authToken');
 
+const formatTime = (time) =>{
+      return time.slice(0, 5); // Retirer les secondes
+    };
 const daysInMonth = computed(() => {
   const year = currentDate.value.getFullYear();
   const month = currentDate.value.getMonth();
@@ -116,21 +126,28 @@ const selectDate = (day) => {
   }
 };
 
-const addEvent = () => {
-  if (currentEvent.value) {
-    currentEvent.value.type = eventType.value;
-    currentEvent.value.startTime = startTime.value;
-    currentEvent.value.endTime = endTime.value;
-  } else {
-  const event = {
-    id: eventId++,
-    date: selectedDate.value,
-    type: eventType.value,
-    startTime: startTime.value,
-    endTime: endTime.value,
-  };
-  events.value.push(event);}
-  resetForm();
+const addEvent = async () => {
+  try {
+    // Vérifier si le nombre de disponibilités est inférieur à 4
+    const response = await axios.post('http://localhost:8000/api/availabilities', {
+      date: selectedDate.value,
+      start_time: startTime.value,
+      end_time: endTime.value,
+      status: eventType.value,
+    },{
+      headers: { 'Authorization': `Bearer ${authToken}` } 
+    });
+    // Si la réponse est réussie, ajoutez l'événement et réinitialisez le formulaire
+    events.value.push(response.data);
+    resetForm();
+  } catch (error) {
+    // Si l'enseignant a atteint la limite de disponibilités, afficher un message d'erreur
+    if (error.response && error.response.status === 403) {
+      alert(error.response.data.message); // Message d'erreur pour les 4 disponibilités atteintes
+    } else {
+      console.error(error); // Afficher d'autres erreurs dans la console
+    }
+  }
 };
 
 const resetForm = () => {
@@ -141,8 +158,20 @@ const resetForm = () => {
   showAddEventForm.value=false;
 };
 
+const fetchAvailabilities = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/availabilities', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    // Ajouter les disponibilités récupérées dans `events.value`
+    events.value = response.data;
+  } catch (error) {
+    console.error("Error fetching availabilities:", error);
+  }
+};
 const getEventForDate = (date) => {
-  return events.value.find(event => event.date === date);
+  const event = events.value.find(event => event.date === date);
+  return event ? true : false;
 };
 
 const previousMonth = () => {
@@ -187,6 +216,7 @@ const showAddAVForm = () => {
 const closeForm = () => {
   showAddEventForm.value = false;
   showAddAV.value=false;
+  currentEvent.value = null;
 };
  const eventsForSelectedDate = computed(() => {
   if (selectedDate.value) {
@@ -194,23 +224,56 @@ const closeForm = () => {
   }
   return [];
 }); 
-const removeEvent = (event) => {
+const removeEvent = async (event) => {
   const index = events.value.findIndex(e => e.id === event.id);
   if (index !== -1) {
-    events.value.splice(index, 1);
+    try {
+      await axios.delete(`http://localhost:8000/api/availabilities/${event.id}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      events.value.splice(index, 1); // Supprimer localement si la suppression est réussie côté serveur
+    } catch (error) {
+      console.error("Failed to delete the event:", error);
+    }
   }
 };
 const editEvent = (event) => {
+  console.log("Editing event:", event); // Vérifiez les données de l'événement
+
   selectedDate.value = event.date;
-  eventType.value = event.type;
-  startTime.value = event.startTime;
-  endTime.value = event.endTime;
-  currentEvent.value = event; // Store the event being edited
+  eventType.value = event.status;
+  startTime.value = formatTime(event.start_time);
+  endTime.value = formatTime(event.end_time);
+  currentEvent.value = event; // Stocker l'événement en cours d'édition
   showAddAV.value = true;
 };
 
-</script> 
+const saveChanges = async () => {
+  try {
+    const response = await axios.put(`http://localhost:8000/api/availabilities/${currentEvent.value.id}`, {
+      date: selectedDate.value,
+      start_time: startTime.value,
+      end_time: endTime.value,
+      status: eventType.value
+    }, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
 
+    const index = events.value.findIndex(e => e.id === currentEvent.value.id);
+    if (index !== -1) {
+      events.value[index] = response.data; // Mettre à jour l'événement modifié
+    }
+    closeForm(); // Fermer le formulaire après l'édition
+  } catch (error) {
+    console.error("Failed to update the event:", error);
+  }
+};
+
+
+onMounted(() => {
+  fetchAvailabilities();
+});
+</script> 
 
 <style scoped>
 .calendar-container {
@@ -261,7 +324,7 @@ const editEvent = (event) => {
 }
 .highlighted {
     font-weight: bold;
-    text-decoration: underline;
+    text-decoration: underline 2px solid;
 }
 .fleche{
   background-color: transparent;
@@ -290,8 +353,8 @@ const editEvent = (event) => {
   text-align: center;
   border-style: none;
 }
-.day.available, .day.unavailable {
-  border-bottom: 3px solid #F4F3E6;
+.highlight_underline {
+  border-bottom: 3px solid #ceca90;
 }
 .AVS{
   color: #ffffffec; 

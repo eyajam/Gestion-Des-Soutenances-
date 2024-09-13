@@ -1,5 +1,5 @@
  <template>
-    <div class="complaint-container">
+    <div class="complaint-container" :class="{ 'blur-background': showInfo }">
       <h3 class="complaint">Complaints & Projects</h3>
       <div class="Gfonc">
     <div class="fonc-group">
@@ -15,20 +15,21 @@
         </button>
     </div>
 </div>
-  <div class="studsPrjts">
+  <div class="studsPrjts" :class="{ 'blur-background': showInfo }">
     <div v-if="selectedType === 'Complaints'">
       <div v-for="user in users" :key="user.id" class="complaint-item">
         <div class="username">
             <i class="fi fi-ts-user-graduate"></i>
-            {{ user.username }}
+            {{ user.email }}
             " {{ user.specialty }} "
           </div>
         <div class="icons">
-          <i class="fi fi-rr-file-circle-info"></i>  
+          <i class="fi fi-rr-file-circle-info" @click="showInfoDiv(user)"></i>  
           <i style="margin-left: 12px;" class="fi fi-rr-paper-plane" @click="navigateToComplaint(user)"></i>
         </div>
       </div>
     </div>
+
     <div v-if="selectedType === 'Projects'">
       <div v-if="projects.length > 0">
         <div style="display: flex; padding-bottom: 15px; color: #244a62; gap: 15px;">
@@ -55,41 +56,115 @@
     </div>
   </div>
       <router-link class="home2" :to="{ name: 'TeacherDashboard'}">⬅ Return to your account</router-link>
-    </div>
+  </div>
+  <div v-if="showInfo" class="info-popup">
+      <div class="info-content">
+        <span @click="hideInfoDiv" class="close-btn">&times;</span>
+        <div class="infoClaim">
+          <div v-if="currentItem">
+          <strong>{{ currentItem.email }}</strong></div>
+          <div><strong>Company name :    </strong>{{ projectData.company }}</div>
+          <div><strong>project title :   </strong>{{ projectData.project_title }}</div>
+          <div><strong>project type :    </strong>{{ projectData.project_type }}</div>
+          <div><strong>partner :       </strong>{{ projectData.partner ? projectData.partner : 'no partner' }}</div>
+          <div v-if="projectData.specs && projectData.original_filename">
+          <strong>specifications :   </strong>
+          <a :href="projectData.specs" target="_blank" rel="noopener noreferrer">{{ projectData.original_filename }}</a>
+        </div>
+        </div>
+      </div>
+  </div>    
   </template>
   <script setup>
-  import { ref } from 'vue';
+  import { ref,onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import dropDown2 from '../components/dropDown2.vue';
+  import axios from 'axios';
 
+
+  const authToken = localStorage.getItem('authToken');
   const selectedType = ref('Complaints');
-  const users = ref([
-    { id: 1, username: 'eya jammoussi', specialty: 'BIS' },
-    { id: 2, username: 'ines ben rabeh', specialty: 'BIS' },
-    { id: 3, username: 'malek seghair', specialty: 'BI' },
-    { id: 4, username: 'Omar ben salem', specialty: 'BIS' },
-    { id: 5, username: 'malek seghair', specialty: 'BI' },
-    { id: 6, username: 'Omar ben salem', specialty: 'BIS' },
-  ]);
-  const selectedSpecialty = ref('specialty');
+  const users = ref([]);
+
+  const showInfo = ref(false);
+  const currentItem = ref(null);
+
+const showInfoDiv = (item) => {
+  currentItem.value = item;
+  showInfo.value = true;
+  fetchProjectDetails();
+};
+
+const hideInfoDiv = () => {
+  showInfo.value = false;
+  currentItem.value = null;
+  
+};
+const projectData = ref({
+  company: '',
+  project_title: '',
+  project_type: '',
+  partner: '',
+  specs: '',
+  original_filename:'',
+})
+  const fetchStudents = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/getStudents' ,
+    { headers: {'Authorization': `Bearer ${authToken}`},
+     withCredentials: true,
+  }); // Fetch data from your API
+    users.value = response.data; // Update the ref with the data
+  } catch (error) {
+    console.error('Error fetching students:', error); // Handle any errors
+  }
+};
+
+const fetchProjectDetails = () => {
+  if (!currentItem.value || !currentItem.value.email) {
+    console.error("L'email n'est pas défini pour l'utilisateur sélectionné.");
+    return;
+  }
+
+  axios.post('http://localhost:8000/api/get-project-details', { email: currentItem.value.email  },
+    { headers: {'Authorization': `Bearer ${authToken}`},
+      withCredentials: true,
+    }
+  )
+    .then((response) => {
+      const project = response.data;
+      projectData.value.company = project.company;
+      projectData.value.project_title = project.project_title;
+      projectData.value.project_type = project.project_type;
+      projectData.value.partner = project.partner;  // If there's a partner, display it in the popup. Otherwise, set it to an empty string.
+      projectData.value.specs = project.specs;
+      projectData.value.original_filename = project.original_filename;
+    })
+    .catch((error) => {
+      console.error('Error fetching project details:', error);
+    });
+};
+const selectedSpecialty = ref('specialty');
 const specialties = ['BIS', 'BI', 'Accounting', 'Finance', 'Marketing','Management','HRM','BE','FEE'];
 const updateSpecialty = (newSpecialty) => {
   selectedSpecialty.value = newSpecialty;
 };
   const projects = ref([
    { id: 1, username: 'aziz gharbi', specialty: 'CS' },
-  { id: 2, username: 'mohamed jammoussi', specialty: 'IT' }, 
+   { id: 2, username: 'mohamed jammoussi', specialty: 'IT' }, 
   // Add more projects or students without supervisors
 ]);
   const router = useRouter();
   const navigateToComplaint = (user) => {
-  router.push({ name: 'complaintT', params: { username: user.username, specialty: user.specialty } });
+  router.push({ name: 'complaintT', params: { username: user.email, specialty: user.specialty } });
 };
 
 const choisenType=(type) => {
   selectedType.value = type;
-  
     }
+    onMounted(() => {
+      fetchStudents(); 
+    });    
   </script>
   <style scoped>
   .complaint-container {
@@ -196,6 +271,46 @@ const choisenType=(type) => {
 .studsPrjts::-webkit-scrollbar-thumb {
   background-color: white; 
   border-radius: 10px; 
+}
+.info-popup {
+  
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.info-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 100%;
+}
+.infoClaim{
+    color: #355070;
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    row-gap: 15px;
+    font-family: 'lato';
+  }
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 22px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.blur-background {
+  filter: blur(5px);
 }
   </style> 
  

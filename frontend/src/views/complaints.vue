@@ -3,39 +3,61 @@
       <h2 :class="{ 'blur-background': showInfo || showMail }" style="position: relative;bottom: 30px;">Complaints &#9660;</h2>
       <div class="claims" :class="{ 'blur-background': showInfo || showMail }">
         <div class="studComplaints">
-          <div v-for="stud in students" :key="stud.id" class="studs">
+          <div v-for="complaint in complaints" :key="complaint.id" class="studs">
             <div class="stud">
               <i class="fi fi-ts-user-graduate icon-left"></i>
-              {{ stud.username }} " {{ stud.specialty }} "
+              {{ complaint.student.first_name }}  {{ complaint.student.last_name }}  {{ complaint.student.specialty }}
             </div>
             <div class="session-icon">
-              <i class="fi fi-ss-comment-info" @click="showInfoDiv(stud)" style="color: #004479;"></i>
+              <i class="fi fi-ss-comment-info" @click="showInfoDiv(complaint)" style="color: #004479;"></i>
             </div>
           </div>
         </div>
+        
         <div class="teacherComplaints">
-          <div v-for="teacher in teachers" :key="teacher.id" class="studs">
+          <div v-for="teacherComplaint in teacherComplaints" :key="teacherComplaint.id" class="studs">
             <div class="stud">
               <i class="fi fi-tr-chalkboard-user icon-left"></i>
-              {{ teacher.username }}
-              
+              <span v-if="teacherComplaint.teacher_complaint">
+              {{ teacherComplaint.teacher_complaint.first_name }} {{ teacherComplaint.teacher_complaint.last_name }}
+              </span>
+              <span v-else>
+                Teacher information unavailable
+              </span>
             </div>
             <div class="session-icon">
-              <i class="fi fi-ss-circle-envelope" @click="showMailDiv(teacher)" style="color: #ffead4;"></i>
-              <i class="fi fi-ss-comment-info" style="margin-left: 10px;color: #004479;" @click="showInfoDiv(teacher)"></i>
+              <i class="fi fi-ss-circle-envelope" @click="showMailDiv(teacherComplaint)" style="color: #ffead4;"></i>
+              <i class="fi fi-ss-comment-info" style="margin-left: 10px;color: #004479;" @click="showInfoDiv(teacherComplaint)"></i>
             </div>
           </div>
         </div>
+
       </div>
-      <div v-if="showInfo" class="info-popup">
+    <div v-if="showInfo" class="info-popup">
       <div class="info-content">
         <span @click="hideInfoDiv" class="close-btn">&times;</span>
         <div class="infoClaim">
-          <div v-if="currentItem"><strong>{{ currentItem.username }}</strong> <span v-if="currentItem.specialty">"<strong>{{ currentItem.specialty }} </strong>"</span></div>
-          <div><strong>Object :</strong> Sans encadrant académique</div>
-          <div><strong>Message :</strong> ca fais plus que 2 semaines que j'ai fait une réclamation et j'ai toujours pas de réponse ni d'encadrant.</div>
-          <div v-if="!currentItem.specialty" class="SS">
-            <i class="fi fi-ss-circle-2" style="font-size:large ; margin-right: 8px; margin-top: 6px;"></i>Session</div>
+          <div v-if="currentItem">
+            {{ currentItem.student ? currentItem.student.first_name : currentItem.teacher_complaint.first_name }} 
+            {{ currentItem.student ? currentItem.student.last_name : currentItem.teacher_complaint.last_name }} 
+            <span v-if="currentItem.student && currentItem.student.specialty">
+              <strong>{{ currentItem.student.specialty }}</strong>
+            </span>
+          </div>
+          <div><strong>student_email : </strong>{{ currentItem.student ? currentItem.student.email : currentItem.student_email }}</div>
+          <div><strong>Object : </strong>{{ currentItem.object }}</div>
+          <div><strong>Message : </strong>{{ currentItem.message }}</div>
+          <div v-if="currentItem.teacher_complaint" class="SS">
+            <i class="fi fi-ss-circle-2" style="font-size:large ; margin-right: 8px; margin-top: 6px;"></i>Session
+          </div >
+          <div class="VRBtn" v-if="currentItem.complaint_type==='editForm' && currentItem.status !== 'approved' && currentItem.status !== 'disapproved'">
+            <div class="validateBTN" style="background-color: rgba(145, 183, 89, 0.941);" value="approved" @click="updateStatus('approved')">validate</div>
+            <div class="validateBTN" style="background-color: rgba(1216, 50, 50, 0.941); margin-left: 10px;" value="disapproved" @click="updateStatus('disapproved')">refuse</div>
+          </div>
+          <div v-else>
+            <span v-if="currentItem.status === 'approved'" style="color: rgba(145, 183, 89, 0.941); font-weight: bold;">Complaint approved</span>
+            <span v-if="currentItem.status === 'disapproved'" style="color: rgba(1216, 50, 50, 0.941); font-weight: bold;">Complaint disapproved</span>
+          </div>
         </div>
       </div>
     </div>
@@ -43,7 +65,7 @@
   <div class="mail-content">
     <span @click="hideMailDiv" class="close-btn">&times;</span>
     <div class="mailClaim">
-      <div v-if="currentItem"><strong>To: {{ currentItem.username }}</strong></div>
+      <div v-if="currentItem"><strong>To: {{ currentItem.teacher_email }}</strong></div>
       <textarea v-model="mailMessage" placeholder="Write your message here..." class="mail-textarea"></textarea>
       <button @click="sendMail" class="send-button"><i class="fi fi-rs-paper-plane-launch"></i></button>
     </div>
@@ -53,25 +75,12 @@
   </template>
   
   <script setup>
-  import { ref } from 'vue';
-  
-  const students = ref([
-    { id: 1, username: 'eya jammoussi', specialty: 'BIS' },
-    { id: 2, username: 'ines ben rabeh', specialty: 'BIS' },
-    { id: 3, username: 'malek seghair', specialty: 'BI' },
-    { id: 4, username: 'Omar ben salem', specialty: 'BIS' },
-    { id: 5, username: 'shirine sarraj ', specialty: 'BIS' },
-    { id: 6, username: 'Omaima kiassa', specialty: 'BIS' }, 
-  ]);
-  
-  const teachers = ref([
-    { id: 1, username: 'Anouer Bennajeh' },
-    { id: 2, username: 'chaouki bayoudhi' },
-    { id: 3, username: 'moez hammemi' },
-    { id: 4, username: 'hadhemi' },
-    { id: 5, username: 'Baati' },
-    { id: 6, username: 'hafedh' },
-  ]);
+  import { ref,onMounted } from 'vue';
+  import axios from 'axios';
+
+  const complaints = ref([]);
+  const teacherComplaints = ref([]);
+
   const showInfo = ref(false);
   const currentItem = ref(null);
   const mailMessage = ref('');
@@ -96,6 +105,45 @@ const hideMailDiv = () => {
   currentItem.value = null;
   mailMessage.value = '';
 };
+const authToken = localStorage.getItem('authToken');
+const fetchTeacherComplaints = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/teacherComplaints',{ headers: { 'Authorization': `Bearer ${authToken}` }});
+    teacherComplaints.value = response.data;
+  } catch (error) {
+    console.error('Error fetching complaints:', error);
+  }
+};
+const fetchComplaints = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/complaints',{ headers: { 'Authorization': `Bearer ${authToken}` }});
+    complaints.value = response.data;
+  } catch (error) {
+    console.error('Error fetching complaints:', error);
+  }
+};
+const updateStatus = async (status) => {
+  if (currentItem.value.status === 'approved' || currentItem.value.status === 'disapproved') {
+    alert('This complaint has already been processed.');
+    return; 
+  }
+  try {
+    const response = await axios.put(`http://localhost:8000/api/updateStatus/${currentItem.value.id}/status`, {
+      status: status,
+    }, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    currentItem.value.status = response.data.complaint.status;
+    alert('Status updated to ' + status);
+  } catch (error) {
+    console.error('Error updating status:', error);
+  }
+};
+
+onMounted(() => {
+  fetchComplaints();
+  fetchTeacherComplaints();
+});
   </script>
   
   <style scoped>
@@ -249,7 +297,25 @@ const hideMailDiv = () => {
   padding: 0;
   margin-right: 8px;
 }
-
+.validateBTN{
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 3px 5px;
+  color: #fff;
+  background-color: rgb(216, 50, 50);
+  position: relative;
+  top: 7px;
+  height: 25px;
+  width: 150px;
+  font-family: 'lato';
+  cursor: pointer;
+}
+.VRBtn{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
 
   </style>
   

@@ -19,9 +19,10 @@ import users from "../views/users.vue";
 import superviseAssign from "../views/superviseAssign.vue";
 const routes = [
    {
-      path: '/',
+      path: '/dashboard',
       component: Dashboard,
-      redirect: '/stats',
+      name: 'Dashboard',
+      redirect: '/dashboard/stats',
       children: [
         {
           path: 'stats',
@@ -50,6 +51,10 @@ const routes = [
         } */
       ]
    },  
+   {
+      path: '/',
+      redirect: '/login', // Redirection vers la page de login par défaut
+    },
 {
    path: '/login',
    name: 'login',
@@ -136,9 +141,15 @@ router.beforeEach((to, from, next) => {
       } else {
         next();
       }
+    } else if (['stats', 'complaints', 'users', 'superviseAssign'].includes(to.name)) {
+      if (!authToken || userRole !== 'admin') {
+        next({ name: 'login' });
+      } else {
+        next();
+      }
     } else {
       next();
     }
  }); 
-
+ 
 export default router

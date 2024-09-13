@@ -4,6 +4,29 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
+/* $allowedOrigins = array (
+    'http://127.0.0.1:8000',
+    'http://localhost:5173'
+);
+
+if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] != '')
+{
+    foreach(
+        $allowedOrigins as $allowedOrigin
+    ) {
+        if (preg_match('#' . $allowedOrigin . '#' , $_SERVER['HTTP_ORIGIN'])){
+            header('Access-Control-Allow-Origin: '.$_SERVER['HTTP_ORIGIN']);
+            header('Access-Control-Allow-Methods:GET, PUT, POST, DELETE, PATCH');
+            header('Access-Control-Allow-Credentials: true');
+            header('Access-Control-Allow-Headers: X-Requested-With,Content-Type,X-Token-Auth,X-Requested-With,Authorization,Origin,Content-Range,ip');
+            header('Accept', 'application/json');
+            break;
+        }
+    }
+} */
+
+
+
 
 /*
 |--------------------------------------------------------------------------

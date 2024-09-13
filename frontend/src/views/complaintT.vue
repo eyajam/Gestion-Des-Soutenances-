@@ -1,15 +1,15 @@
 <template>
   <div class="complaint-form1">
     <h2 class="comp">Complaint</h2>
-    <p><strong> {{ username }} " {{ specialty }} "</strong></p>
+    <p><strong> {{ email }} " {{ specialty }} "</strong></p>
     <form class="form5" @submit.prevent="submitForm">
       <div class="form-group">
         <label class="labels2" for="title">Object :</label>
-        <input class="title" type="text" id="title" v-model="title" />
+        <input class="title" type="text" id="title" v-model="form.Object" />
       </div>
       <div class="form-group">
         <label class="labels2" for="message">Message :</label>
-        <textarea id="message" v-model="message"></textarea>
+        <textarea id="message" v-model="form.message"></textarea>
       </div>
       <button class="Cbtn" type="submit">Submit</button>
     </form>
@@ -18,12 +18,48 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useRoute } from 'vue-router';
+import axios from 'axios';
 
 const route = useRoute();
-
-const username = route.params.username;
+const form= ref({
+  Object: '',
+  message: ''
+})
+const teacher_email = localStorage.getItem('email');
+const authToken = localStorage.getItem('authToken');
+const email = route.params.username;
 const specialty = route.params.specialty;
+const validateForm = () => {
+  if (!form.value.Object) {
+    alert('object is required.');
+    return false;
+  }
+  if (!form.value.message) {
+    alert('message is required.');
+    return false;
+  }
+  return true;
+};
+const submitForm = async () => {
+  try {
+    if (!validateForm()) {
+    return; }
+    const response = await axios.post('http://localhost:8000/api/teacher-complaints', {
+      teacher_email: teacher_email, 
+      student_email: email,
+      object: form.value.Object,
+      message: form.value.message,
+    },{headers: {'Authorization': `Bearer ${authToken}` }, withCredentials:true});
+    // Handle successful response
+    console.log('Complaint submitted successfully:', response.data);
+    alert('Complaint submitted successfully!');
+  } catch (error) {
+    // Handle error response
+    console.error('Error submitting complaint:', error);
+  }
+};
 
 </script>
 

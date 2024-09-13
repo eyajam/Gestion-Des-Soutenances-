@@ -6,14 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\Teacher ;
-use App\Notifications\VerifyEmail;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerificationEmail; 
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -59,8 +57,7 @@ public function sendVerificationCode(Request $request)
 } 
 
 public function registerUser(Request $request)
-{
-    
+{   
     $role = $request->role;
     $baseRules = [
         'firstname' => 'required|string',
@@ -86,7 +83,7 @@ public function registerUser(Request $request)
         'lastName' => $request->lastname,
         'email' => $request->email,
         'password' => bcrypt($request->password),
-        'role' => $request->role,
+        'role' => $role,
         'verification_code'=>$request->verification_code,
         'is_verified' => true,  
        
@@ -95,7 +92,7 @@ public function registerUser(Request $request)
     // Gérer les champs spécifiques selon le rôle
     if ($request->role === 'student') {
         Student::create([
-            'student_id' => $user->id, 
+            'user_id' => $user->id, 
             'first_name' => $request->firstname,
             'last_name' => $request->lastname,
             'cin' => $request->cin,
@@ -106,14 +103,19 @@ public function registerUser(Request $request)
             'password' =>bcrypt($user->password),
         ]);
     }
-    else Teacher::create([
-        'teacher_id' => $user->id, 
+    elseif ($request->role === 'teacher') {
+     Teacher::create([
+        'user_id' => $user->id, 
         'first_name' => $request->firstname,
         'last_name' => $request->lastname,
         'grade' => $request->grade,
         'email' => $request->email,
         'password' =>bcrypt($request->password),
     ]);
+    }elseif ($request->role === 'admin') {
+        $user->verification_code = null; 
+        $user->save();
+    }
     return response()->json([
         'message' => 'Registration successful',   
     ]);
@@ -124,7 +126,6 @@ public function login(Request $request)
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
         $token=$user->createToken('authToken')->plainTextToken;
-
         return response()->json([
             'message' => 'Login successful',
             'role' => $user->role,
@@ -139,5 +140,77 @@ public function login(Request $request)
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
 }
+public function getUser()
+{
+    // Récupérer l'utilisateur authentifié
+    $user = Auth::user();
+    
+    // Si c'est un étudiant, on récupère aussi les informations supplémentaires depuis la table "students"
+    if ($user->role === 'student') {
+        $student = $user->student; // Relation one-to-one avec le modèle Student
+        $user->cin = $student->cin;
+        $user->status = $student->status;
+        $user->specialty = $student->specialty;
+        $user->number = $student->number;
+        
+    } elseif ($user->role === 'teacher') {
+        $teacher = $user->teacher; // Relation one-to-one avec le modèle Teacher
+        $user->grade = $teacher->grade;
+        
+    }
 
+
+    // Renvoyer les informations de l'utilisateur au format JSON
+    return response()->json($user);
+}
+public function updateUser(Request $request)
+    {
+        $user = Auth::user();
+        // Valider les informations du formulaire
+        $validator = Validator::make($request->all(), [
+            'firstname' => 'required|string|max:255',
+            'lastname' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8|confirmed',
+            'cin' => 'required_if:role,student|string|max:8',
+            'status' => 'required_if:role,student|string|max:255',
+            'specialty' => 'required_if:role,student|string|max:255',
+            'grade' => 'required_if:role,teacher|string|max:255',
+            'number' => 'required_if:role,student|string|max:15',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Mettre à jour les informations utilisateur
+        $user->name = $request->firstname;
+        $user->lastName = $request->lastname;
+        $user->email = $request->email;
+        $user->password = bcrypt($request->password);
+
+        $user->save();
+
+        // Si c'est un étudiant, mettre à jour les informations spécifiques de la table "students"
+        if ($user->role === 'student') {
+            $student = $user->student; // Relation one-to-one avec le modèle Student
+            $student->first_name = $request->firstname;
+            $student->last_name = $request->lastname;
+            $student->cin = $request->cin;
+            $student->status = $request->status;
+            $student->specialty = $request->specialty;
+            $student->number = $request->number;
+            $student->save();
+        }elseif ($user->role === 'teacher') {
+            $teacher= $user->teacher;
+            $teacher->first_name = $request->firstname;
+            $teacher->last_name = $request->lastname;
+            $teacher->grade = $request->grade;
+            $teacher->email = $request->email;
+            $teacher->save();
+        }
+
+
+        return response()->json(['message' => 'User updated successfully']);
+    }
 }

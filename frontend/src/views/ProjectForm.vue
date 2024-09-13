@@ -45,7 +45,7 @@
       import { ref,onMounted } from 'vue';
       import Dropdown from '../components/DropDown.vue';
       import axios from 'axios';
-          
+      const authToken = localStorage.getItem('authToken');  
       const form = ref({
         ProjectType: '',
         partner: '',
@@ -61,7 +61,7 @@
        handleProjectTypeChange(newProjectType);
       };
       
-      const teachers =['AnouerBennajeh@gmail.com','hadhemiAchour@gmail.com','bayoudhiChawki@gmail.com'];
+      const teachers =ref([]);
       const updateTeachers = (newTeacher) => {
         form.value.teacher_email = newTeacher;
       };
@@ -107,10 +107,17 @@
     eStudents.value = []; // Fallback to empty array
   }
 };
-
-// Fetch the student emails when the component is mounted or when "binomial" is selected
+const fetchTeacherEmails = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/teachers',{headers: { 'Authorization': `Bearer ${authToken}`}});
+        teachers.value = response.data;
+      } catch (error) {
+        console.error('Erreur lors de la récupération des emails des enseignants', error);
+      }
+    };
 onMounted(() => {
-  fetchStudentsBySpecialty(); // Fetch the data when the component mounts
+  fetchTeacherEmails();
+  fetchStudentsBySpecialty(); // Fetch the student emails when the component is mounted or when "binomial" is selected
 });
 
 const selectedFileName = ref('');
@@ -136,9 +143,9 @@ const validateForm = () => {
     errors.push('Project type is required.');
   } 
 
-  if (showPartnerField.value && !form.value.partner) {
-    errors.push('Partner is required.');
-  } 
+  if (form.value.ProjectType === 'binomial' && !form.value.partner) {
+    errors.push("Partner is required for binomial projects.");
+  }
 
   if (form.value.company && form.value.company.length > 255) {
     errors.push('Company name must be less than 255 characters.');
@@ -163,7 +170,9 @@ const validateForm = () => {
 };
 
 const handleSubmit = async () => {
- 
+  if (!validateForm()) {
+    return;
+  }
   const formData = new FormData();
   formData.append('project_type', form.value.ProjectType);
   if (showPartnerField.value && form.value.partner) {
@@ -176,16 +185,22 @@ const handleSubmit = async () => {
     formData.append('specs', form.value.specs);
   }
   try {
-    const authToken = localStorage.getItem('authToken');
+    
     const response = await axios.post('http://localhost:8000/api/projects', formData, {
       headers: { 'Authorization': `Bearer ${authToken}`,
-         'Content-Type': 'multipart/form-data' },
+                 'Content-Type': 'multipart/form-data' ,
+                },
     });
     alert('Project stored successfully');
     console.log('Project stored successfully:', response.data);
   } catch (error) {
+    if (error.response && error.response.status === 400) {
+      alert(error.response.data.error); // Display the error message from the backend
+    } else {
     console.error('Failed to store project:', error);
-  }}
+  }
+}
+}
 </script>
     <style >
     .home{
