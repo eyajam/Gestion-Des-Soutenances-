@@ -32,10 +32,15 @@ class Complaint extends Model
             ->first();
 
         if (!$lastComplaint) {
-            return true; // No complaints of this type submitted yet
+            return true; 
         }
 
-        $oneWeekAgo = now()->subWeek();//une semaine avant la date d'aujourd'hui
+        $oneWeekAgo = now()->subWeek();//une semaine avant la date d'aujourd'hui 
+        /* 17(now)-7=10 le 10
+        Le 15 j ai remis
+        Rec(le15)>owa(le 10)
+        Now : le 23 : 23-7 = 16
+        Le 16> le 15 okk donc */
         return $lastComplaint->created_at < $oneWeekAgo;
     }
 }

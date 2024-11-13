@@ -30,7 +30,10 @@ function handleLogin() {
   // Send login data to the backend
   axios.post('http://localhost:8000/api/login', form)
     .then(response => {
-      const role = response.data.role;
+      console.log(response.data);
+      
+      if (response.data.token) {
+        const role = response.data.role;
       // Store the token in localStorage 
       localStorage.setItem('authToken', response.data.token);
       localStorage.setItem('userDetails', JSON.stringify(response.data.userDetails));
@@ -46,10 +49,15 @@ function handleLogin() {
       } else {
         alert('Unknown role. Cannot redirect.');
       }
+    }else { alert('aucune données ')}
     })
     .catch(error => {
       console.error('Login Error:', error.response ? error.response.data : error.message);
-      //alert('Invalid credentials. Please try again.');
+      if (error.response && error.response.data && error.response.data.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('Erreur inconnue. Veuillez réessayer.');
+      }
     });
 }
 </script>

@@ -232,6 +232,7 @@ const removeEvent = async (event) => {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       events.value.splice(index, 1); // Supprimer localement si la suppression est réussie côté serveur
+      alert("deleted event successfully")
     } catch (error) {
       console.error("Failed to delete the event:", error);
     }
@@ -258,12 +259,13 @@ const saveChanges = async () => {
     }, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
-
+    alert("updated successfully");
     const index = events.value.findIndex(e => e.id === currentEvent.value.id);
     if (index !== -1) {
       events.value[index] = response.data; // Mettre à jour l'événement modifié
     }
     closeForm(); // Fermer le formulaire après l'édition
+    
   } catch (error) {
     console.error("Failed to update the event:", error);
   }

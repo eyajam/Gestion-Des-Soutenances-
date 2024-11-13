@@ -13,7 +13,7 @@
   </template>
   
   <script setup>
-  import { ref, watch } from 'vue';
+  import { ref, watch, onBeforeUnmount, onMounted } from 'vue';
   
   const props = defineProps({
     modelValue: String,
@@ -38,7 +38,19 @@
     emit('update:modelValue', selected.value);
     emit('change', selected.value);
   };
-  
+  const handleClickOutside = (event) => {
+  const dropdown = document.getElementById('dropdown');
+  if (dropdown && !dropdown.contains(event.target)) {
+    isOpen.value = false;
+  }
+};
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
   watch(() => props.modelValue, (newValue) => {
     selected.value = newValue;
   });

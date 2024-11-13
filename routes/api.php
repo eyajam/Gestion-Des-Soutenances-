@@ -26,8 +26,10 @@ Route::post('/sendVerificationCode', [UserController::class, 'sendVerificationCo
 Route::post('/verify-code', [UserController::class, 'verifyCode']);
 Route::post('/registerUser', [UserController::class, 'registerUser']);
 Route::post('/login', [UserController::class, 'login']);
+Route::post('/password-reset', [UserController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->get('/user', [UserController::class, 'getUser']);
 Route::middleware('auth:sanctum')->put('/userEdit', [UserController::class,'updateUser']);
+
 //studentController
 
 Route::get('/student-info', [studentController::class, 'getLoggedInStudent']);
@@ -41,14 +43,18 @@ Route::middleware('auth:sanctum')->get('/check-edit-form-complaint', [studentCon
 
 // teacherController
 
-Route::middleware('auth:sanctum')->get('/teachers', [teacherController::class, 'getTeacherEmails']);
+Route::middleware('auth:sanctum')->get('/teachersEmail', [teacherController::class, 'getTeacherEmails']);
 Route::middleware('auth:sanctum')->get('/getStudents', [teacherController::class, 'getStudentsByTeacherEmail']);
 Route::middleware('auth:sanctum')->post('/teacher-complaints', [teacherController::class, 'storeComplaint']);
 Route::middleware('auth:sanctum')->post('/get-project-details', [teacherController::class,'getProjectDetailsByEmail']);
 Route::middleware('auth:sanctum')->post('/availabilities', [teacherController::class, 'store']);
-Route::middleware('auth:sanctum')->get('/availabilities', [teacherController::class, 'index']);
+Route::middleware('auth:sanctum')->get('/availabilities', [teacherController::class, 'getAvailibility']);
 Route::middleware('auth:sanctum')->delete('/availabilities/{id}', [teacherController::class, 'destroy']);
 Route::middleware('auth:sanctum')->put('/availabilities/{id}', [teacherController::class, 'update']);
+Route::middleware('auth:sanctum')->get('/getUnsupervisedStudents', [adminController::class, 'getStudentsWithoutSupervision']);
+Route::middleware('auth:sanctum')->post('/addProject', [teacherController::class, 'addProject']);
+Route::middleware('auth:sanctum')->get('/getDd', [teacherController::class,'getDeadline']);
+Route::middleware('auth:sanctum')->post('/teacher-planning', [teacherController::class,'getTeacherPlanning']);
 
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/complaints', [adminController::class, 'getComplaints']);
@@ -57,6 +63,23 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/users', [adminController::class, 'allUsers']);
     Route::get('/user/{userId}', [adminController::class,'getUserDetails']);
     Route::put('/updateUser/{userId}', [adminController::class,'updateUser']);
+    Route::post('/deleteUsers', [adminController::class, 'deleteUsers']);
+    Route::post('/addUser', [adminController::class,'addUser']);
+    Route::get('/getStudentsWithoutSupervision', [adminController::class, 'getStudentsWithoutSupervision']);
+    Route::get('/getTeachersWithProjectCount', [adminController::class, 'getTeachersWithProjectCount']);
+    Route::post('/sendUnsupervisedStudentsList', [adminController::class, 'sendUnsupervisedStudentsListToTeachers']);
+    Route::get('/getDeadline', [adminController::class,'getDeadline']);
+    Route::get('/unsupervised-projects', [adminController::class, 'getUnsupervisedProjects']);
+    Route::post('/assignProjectsToTeacher', [adminController::class, 'assignProjectsToTeacher']);
+    Route::put('/stop-supervision-period', [adminController::class, 'stopSupervisionPeriod'] );
+    Route::put('/students/session', [adminController::class,'updateSession']);
+    Route::get('/statistics', [adminController::class,'getStatistics']);
+    Route::post('/upload', [adminController::class, 'verifyDeposit']);
+    Route::get('/teachers', [adminController::class, 'teachers']);
+    Route::post('/generatePlanning', [adminController::class, 'generatePlanning']);
+    Route::post('/generateFile', [adminController::class,'generateFile']);
+    Route::post('/teachersPlanningType', [adminController::class,'teachersPlanningType']);
+   
 });
 
 });

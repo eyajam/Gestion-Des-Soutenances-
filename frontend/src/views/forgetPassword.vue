@@ -24,6 +24,7 @@
 </template>
 <script setup>
 import { ref } from 'vue';
+import axios from 'axios';
   const form = ref({
     email: '',
     password: '',
@@ -31,13 +32,25 @@ import { ref } from 'vue';
   });
 
   function handleSubmit() {
-    if (form.value.password !== form.value.passwordConfirmation) {
+  if (form.value.password !== form.value.passwordConfirmation) {
     alert('Passwords do not match!');
-    return;}
-    const dataToSend = {
+    return;
+  }
+
+  const dataToSend = {
     email: form.value.email,
     password: form.value.password,
-  }
+    password_confirmation: form.value.passwordConfirmation,
+  };
+
+  axios.post('http://localhost:8000/api/password-reset', dataToSend)
+    .then(response => {
+      alert('Password updated successfully!');
+    })
+    .catch(error => {
+      console.error(error);
+      alert('There was an error updating the password.');
+    });
 };
 
 </script>
@@ -72,7 +85,7 @@ import { ref } from 'vue';
     border-radius: 31px;
     height: 450px;
     width: 350px;
-    background: #a8cce36b;
+    background: #8ba5b59e;
     box-shadow:  20px 20px 80px #355070ad,
                -20px -20px 80px #ffffff;
     font-family: 'lato';           

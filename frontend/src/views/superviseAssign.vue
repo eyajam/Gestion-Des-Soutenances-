@@ -24,23 +24,27 @@
       </div>
       <div class="content-list">
         <div v-if="activeTab === 'supervision'">
-          <div class="student" v-for="student in students" :key="student.cin">
+          <div v-if="students.length>0" class="student" v-for="student in students" :key="student.cin">
             <p>CIN : {{ student.cin }}</p>
-            <p> {{ student.name }} {{ student.surname }}</p>
+            <p> {{ student.first_name }} {{ student.last_name }}</p>
             <p> {{ student.specialty }}</p>
-            <p> {{ student.projectType }}</p>
+            <p> {{ student.project_type }}</p>
+          </div>
+          <div v-else style="color: red; font-family: 'lato'; display: flex; gap: 15px; align-items: center;justify-content: center;">
+            <i class="fi fi-rr-not-found-alt"></i>
+           <div> No unsupervised projects found </div>
           </div>
         </div>
         <div v-if="activeTab === 'assignments'" :class="{ 'blur-background ': showProjects }">
-          <div class="teacher" v-for="teacher in teachers" :key="teacher.name">
-            <p> {{ teacher.name }} {{ teacher.surname }}</p>
+          <div class="teacher" v-for="teacher in teachers" :key="teacher.email">
+            <p> {{ teacher.first_name }} {{ teacher.last_name }}</p>
             <p> {{ teacher.grade }}</p>
-            <p> Projects: {{ teacher.projects }}</p>
+            <p> Projects: {{ teacher.project_count }}</p>
             <i class="fi fi-rr-multiple" @click="assignProject(teacher)" style="color: #cfedbb;cursor: pointer;"></i>
           </div>
         </div>
       </div>
-      <button v-if="activeTab === 'supervision'" class="action-button" @click="sendRequest">Send Request</button>
+      <button v-if="activeTab === 'supervision' && students.length>0" class="action-button" @click="sendRequest">Send Request</button>
     <div v-if="showProjects" class="modal-overlay" ></div> 
     <div v-if="showProjects" class="modal" @click="closeProjectList">
     <div class="project-list" @click.stop>
@@ -49,16 +53,16 @@
       <div class="specialty">
       <div style="position: relative; font-size: 15px; ">Specialty :</div>
       <dropDown2 :modelValue="selectedSpecialty" :options="specialties" @update:modelValue="updateSpecialty"/></div>
-      <div v-if="unassignedProjects.length > 0">
+      <div v-if="uniqueFilteredProjects.length > 0">
         <div class="UP">
-      <div v-for="project in unassignedProjects" :key="project.title" class="project-item">
+      <div v-for="project in uniqueFilteredProjects" class="project-item">
         <label style="color: #2d343a;margin: 0;font-size: 14px;">
-          <input type="checkbox" v-model="selectedProjects" :value="project.title" />
-          {{ project.title }}
+          <input type="checkbox" :value="project.student_id" v-model="selectedProjects" />
+          {{ project.project_title }}
         </label>
       </div>
     </div>
-      <button class="add-project" @click="addProjectsToTeacher">Add Project</button>
+      <button class="add-project" @click="addProjectToTeacher">Add Project</button>
     </div>
     <div v-else>
         <p style="color: #637484c2; font-size: 14px; font-weight: bold; letter-spacing:1px;">No Unassigned<br> projects found</p>
@@ -69,76 +73,116 @@
   </template>
   
   <script setup>
-  import { ref } from 'vue';
+  import { onMounted, ref, computed } from 'vue';
   import dropDown2 from '../components/dropDown2.vue';
+  import axios from 'axios';
+  import { eventBus } from '../eventBus';
+
   const activeTab = ref('supervision');
-
-const students = ref([
-  { cin: '12345678', name: 'eya', surname: 'jammoussi', specialty: 'BIS',projectType:'Binomial' },
-  { cin: '87654321', name: 'omar', surname: 'ben salem', specialty: 'BI',projectType:'Monomial' },
-  { cin: '12345678', name: 'malek', surname: 'seghair', specialty: 'BIS',projectType:'Binomial' },
-  { cin: '87654321', name: 'ines', surname: 'ben rebah', specialty: 'BI',projectType:'Monomial' },
-  { cin: '12345678', name: 'shirine', surname: 'sarraj', specialty: 'BIS',projectType:'Binomial' },
-  { cin: '87654321', name: 'oumaima', surname: 'kiassa', specialty: 'BI',projectType:'Monomial' },
-  // Ajoutez plus d'étudiants si nécessaire
-]);
-
-const teachers = ref([
-  { name: 'Anouer', surname: 'bennajeh', grade: 'Professor', projects: 2 },
-  { name: 'chaouki', surname: 'Bayoudhi', grade: 'Associate Professor', projects: 3 },
-  { name: 'Anouer', surname: 'bennajeh', grade: 'Professor', projects: 2 },
-  { name: 'chaouki', surname: 'Bayoudhi', grade: 'Associate Professor', projects: 3 },
-  { name: 'Anouer', surname: 'bennajeh', grade: 'Professor', projects: 2 },
-  { name: 'chaouki', surname: 'Bayoudhi', grade: 'Associate Professor', projects: 3 },
-  // Ajoutez plus d'enseignants si nécessaire
-]);
+  const authToken = localStorage.getItem('authToken');
+const students = ref([]);
+const fetchStudentsWithoutSupervision = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/getStudentsWithoutSupervision',
+    {headers: {'Authorization': `Bearer ${authToken}`}});
+    students.value = response.data;
+  } catch (error) {
+    console.error('Error fetching students:', error);
+  }
+};
+const teachers = ref([]);
+const fetchTeachersWithProjectCount = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/getTeachersWithProjectCount',
+    {headers: {'Authorization': `Bearer ${authToken}`}});
+    teachers.value = response.data;
+  } catch (error) {
+    console.error('Error fetching teachers:', error);
+  }
+};
 const selectedSpecialty = ref('');
 const specialties = ['BIS', 'BI', 'Accounting', 'Finance', 'Marketing','Management','HRM','BE','FEE'];
 const updateSpecialty = (newSpecialty) => {
   selectedSpecialty.value = newSpecialty;
 };
 
-const unassignedProjects = ref([
-  { title: 'Développement d"une application web pour la gestion des soutenances1' },
-  { title: 'Développement d"une application web pour la gestion des soutenances2' },
-  { title: 'Développement d"une application web pour la gestion des soutenances3' },
-  { title: 'Développement d"une application web pour la gestion des soutenances4' },
-  { title: 'Développement d"une application web pour la gestion des soutenances5' },
-  { title: 'Développement d"une application web pour la gestion des soutenances6' },
-  // Ajoutez plus de projets si nécessaire
-]);
-
 const showProjects = ref(false);
 const selectedTeacher = ref(null);
 const selectedProjects = ref([]);
 
-const sendRequest = () => {
-  alert('Request sent successfully');
-};
-
-const assignProject = (teacher) => {
-  showProjects.value = true;
-  selectedTeacher.value = teacher.name;
-};
-
-const addProjectsToTeacher = () => {
-   // Trouver l'enseignant sélectionné
-   const teacher = teachers.value.find(t => t.name === selectedTeacher.value);
-  if (teacher) {
-    // Ajouter les projets sélectionnés à l'enseignant
-    teacher.projects += selectedProjects.value.length;
-    // Retirer les projets sélectionnés de la liste des projets non attribués
-    unassignedProjects.value = unassignedProjects.value.filter(project => !selectedProjects.value.includes(project.title));
-    // Réinitialiser la liste des projets sélectionnés et fermer la modal
-    selectedProjects.value = [];
-    showProjects.value = false;
-    alert(`Projects added to ${selectedTeacher.value}`);
+const sendRequest = async () => {
+  try {
+    const response = await axios.post('http://localhost:8000/api/sendUnsupervisedStudentsList',{},
+    {headers: {'Authorization': `Bearer ${authToken}`}});
+    
+    alert(response.data.message);
+    // Emit an event to notify the teacher component to update its project list
+    eventBus.emit('requestSent');
+  } catch (error) {
+    console.error('Error sending request:', error);
   }
 };
+const assignProject = (teacher) => {
+  showProjects.value = true;
+  selectedTeacher.value = teacher.email;
+};
+const addProjectToTeacher = async () => {
+  if (selectedProjects.value.length === 0) {
+    alert('Please select at least one project.');
+    return;
+  }
+  try {
+    const response = await axios.post('http://localhost:8000/api/assignProjectsToTeacher', {
+      teacher: selectedTeacher.value,
+      student_ids: selectedProjects.value,  // Envoyer les IDs des étudiants associés aux projets
+    }, { headers: { 'Authorization': `Bearer ${authToken}` }});
+    
+    alert('Projects successfully assigned!');
+    closeProjectList(); // Ferme la fenêtre après l'attribution
+  } catch (error) {
+    console.error('Error assigning projects:', error);
+  }
+};
+
+
+const projects = ref([]);
+const fetchUnsupervisedProjects = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/unsupervised-projects',
+    {headers: {'Authorization': `Bearer ${authToken}`}}
+    );
+    projects.value = response.data; // Mettre à jour la liste des projets
+  } catch (error) {
+    console.error('Erreur lors de la récupération des projets non supervisés :', error);
+  }
+};
+const uniqueFilteredProjects = computed(() => {
+  const seenGroups = new Set();
+
+  // Commence par filtrer les projets selon la spécialité choisie (s'il y en a une)
+  const filtered = !selectedSpecialty.value 
+    ? projects.value  // Si aucune spécialité n'est sélectionnée, retourner tous les projets
+    : projects.value.filter(project => project.specialty === selectedSpecialty.value);
+
+  // Ensuite, applique la logique d'unicité basée sur project_group
+  return filtered.filter(project => {
+    if (!seenGroups.has(project.project_group)) {
+      seenGroups.add(project.project_group);
+      return true;
+    }
+    return false;
+  });
+});
+
 const closeProjectList = () => {
   showProjects.value = false;
   selectedProjects.value = [];
 };
+onMounted(() => {
+  fetchStudentsWithoutSupervision();
+  fetchTeachersWithProjectCount();
+  fetchUnsupervisedProjects();
+});
   </script>
   
   <style scoped>
@@ -150,6 +194,7 @@ const closeProjectList = () => {
   max-width: 250px;
   overflow-y: auto;
   padding: 0 10px; 
+  display: contents;
 }
   .group-SA {
     display: flex;
@@ -197,6 +242,7 @@ const closeProjectList = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 500px;
 }
 
 .action-button {
@@ -246,6 +292,7 @@ const closeProjectList = () => {
   align-items: center;
   z-index: 1000;
   padding: 20px;
+  /* color: #3e464ef3; */
 }
 .modal {
   position: fixed;
@@ -265,6 +312,7 @@ const closeProjectList = () => {
 .project-item {
   display: flex;
   padding-bottom: 5px;
+
 }
 .add-project{
   background-color: #bbd6a9eb;

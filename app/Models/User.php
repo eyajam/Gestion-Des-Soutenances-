@@ -8,7 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-
+use Illuminate\Support\Facades\Crypt;
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -41,5 +41,20 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(Teacher::class, 'user_id'); // Assuming 'user_id' is the foreign key in the teachers table
     }
-    
+    public function isPasswordEncrypted()
+{
+    // Vérifie si la chaîne commence par "$2y$" qui est le préfixe des hachages bcrypt
+    if (strpos($this->password, '$2y$') === 0) {
+        return false; // Le mot de passe est haché avec bcrypt
+    }
+
+    // Sinon, essayer de décrypter
+    try {
+        Crypt::decryptString($this->password);
+        return true; // Le mot de passe est chiffré
+    } catch (\Exception $e) {
+        return false; // Le mot de passe n'est pas décryptable
+    }
+}
+
 }

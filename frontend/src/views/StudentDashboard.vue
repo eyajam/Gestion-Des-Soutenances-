@@ -117,7 +117,7 @@ const goToEditProjectForm = async () => {
     const complaint = response.data; 
     
     if (!complaint || Object.keys(complaint).length === 0) {
-      alert('Vous devez d\'abord soumettre une réclamation de type "editForm" pour pouvoir mettre à jour votre formulaire.');
+      alert('You must first submit an ‘editForm’ claim to be able to update your form.');
       return;
     }
     const status = complaint.status;
@@ -125,9 +125,9 @@ const goToEditProjectForm = async () => {
     if (status === 'approved') {
       router.push({ name: 'EditProjectForm' });
     } else if (status === 'in_process') {
-      alert('Votre réclamation est en cours de traitement.');
+      alert('Your claim is being processed.');
     } else if (status === 'disapproved') {
-      alert('Votre réclamation a été refusée.');
+      alert('Your claim has been rejected.');
     }
   } catch (error) {
     console.error('Erreur lors de la vérification de la réclamation', error);
@@ -139,7 +139,7 @@ const currentStep = ref(0);
 const steps = ref([
   { image: '/images/fillin-form.png', description: 'Fill out the form by providing all the information about your senior project, and be sure to review it when you are done.' },
   { image: '/images/Edit-form.png', description: 'You wish to edit your project form information, send a request by submitting a claim of type edit information. Once your request has been validated, you will be able to update your form. ' },
-  { image: '/images/send-claim.png', description: 'If you are experiencing difficulty in finding an academic supervisor or in any other capacity, do not hesitate to submit a claim but only every two weeks' },
+  { image: '/images/send-claim.png', description: 'If you are experiencing difficulty in finding an academic supervisor or in any other capacity, do not hesitate to submit a claim but only once a week.' },
 ]);
 
 const nextStep = () => {

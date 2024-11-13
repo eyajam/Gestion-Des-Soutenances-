@@ -47,9 +47,12 @@
           <div><strong>student_email : </strong>{{ currentItem.student ? currentItem.student.email : currentItem.student_email }}</div>
           <div><strong>Object : </strong>{{ currentItem.object }}</div>
           <div><strong>Message : </strong>{{ currentItem.message }}</div>
-          <div v-if="currentItem.teacher_complaint" class="SS">
-            <i class="fi fi-ss-circle-2" style="font-size:large ; margin-right: 8px; margin-top: 6px;"></i>Session
-          </div >
+          <div v-if="currentItem.teacher_complaint && currentItem.student.session === 'first'" class="SS">
+            <div class="SS1" @click="updateSession(currentItem.student.email)">2 Session</div>
+          </div>
+          <div v-else-if="currentItem.teacher_complaint && currentItem.student.session === 'second'">
+            <div style="font-family: 'lato'; color: red;">Second Session</div>
+          </div>
           <div class="VRBtn" v-if="currentItem.complaint_type==='editForm' && currentItem.status !== 'approved' && currentItem.status !== 'disapproved'">
             <div class="validateBTN" style="background-color: rgba(145, 183, 89, 0.941);" value="approved" @click="updateStatus('approved')">validate</div>
             <div class="validateBTN" style="background-color: rgba(1216, 50, 50, 0.941); margin-left: 10px;" value="disapproved" @click="updateStatus('disapproved')">refuse</div>
@@ -139,6 +142,22 @@ const updateStatus = async (status) => {
     console.error('Error updating status:', error);
   }
 };
+const updateSession = async (email) => {
+  try {
+    const response = await axios.put(`http://localhost:8000/api/students/session`, {
+      email: email,
+    }, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    // Met à jour le champ session dans currentItem pour afficher la nouvelle session
+    if (currentItem.value.student) {
+      currentItem.value.student.session = 'second';
+    }
+    alert(response.data.message);
+  } catch (error) {
+    console.error('Error updating session:', error);
+  }
+};
 
 onMounted(() => {
   fetchComplaints();
@@ -162,8 +181,10 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     align-items: baseline;
-    row-gap: 15px;
+    row-gap: 12px;
+    width: 100%;
   }
+
   .studComplaints, .teacherComplaints {
     flex: 1;
     max-height: 315px; 
@@ -181,12 +202,14 @@ onMounted(() => {
     border-radius: 5px;
     width: 300px;
     color: white;
+    box-shadow: 9px 9px 18px rgba(35, 76, 106, 0.36);
   }
   
   .stud {
     display: flex;
     align-items: center;
     flex: 1;
+
   }
   
   .icon-left {
@@ -243,16 +266,22 @@ onMounted(() => {
   filter: blur(5px);
 }
 .SS{
-  background-color: #ffffff;
-  border: 1px solid #355070;
-  padding: 5px 10px;
-  border-radius: 20px;
-  color: #355070;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+}
+.SS1{
+  background-color: #355070;
+  padding: 5px 10px;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: bold;
+  font-family: 'lato';
   cursor: pointer;
   margin-top: 12px;
+  height: 25px;
+  width: 150px;
 }
 .mail-popup {
   position: absolute;
@@ -302,7 +331,6 @@ onMounted(() => {
   border: 1px solid transparent;
   padding: 3px 5px;
   color: #fff;
-  background-color: rgb(216, 50, 50);
   position: relative;
   top: 7px;
   height: 25px;

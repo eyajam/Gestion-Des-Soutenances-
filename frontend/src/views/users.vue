@@ -12,7 +12,7 @@
         <i class="fi fi-sr-member-search" style="position: relative; top: 8px;font-size: 18px; left: 10px;"></i>
         <input type="text" placeholder="Search for users" v-model="searchQuery" />
         <div>
-            <i class="fi fi-sr-trash" style="position: relative; top: 8px;font-size: 18px;right: 10px;cursor: pointer;"@click="deleteSelectedUsers"></i>
+            <i class="fi fi-sr-trash" style="position: relative; top: 8px;font-size: 18px;right: 10px;cursor: pointer;"@click="deleteUser()"></i>
         </div>
       </div>
       <table class="user-table" :class="{ 'blur-background ': isModalOpen || state.isAddUserModalOpen }">
@@ -33,7 +33,8 @@
                 <div class="user-email">{{ user.email }}</div>
               </div>
             </td>
-            <td>{{ user.role }}</td>
+            <td :class="user.role === 'student' ? 'student-role' : 'teacher-role'">
+              {{ user.role }}</td>
             <td>
               <button class="edit-user" @click="openModal(user.id)"><i class="fi fi-rr-user-pen" style="position: relative; top: 2px; margin-right: 5px;"></i>Edit user</button>
               <button class="delete-user" @click="deleteUser(user)"><i class="fi fi-sr-trash" style="position: relative; top: 2px; margin-right: 5px;"></i>Delete user</button>
@@ -46,7 +47,7 @@
        <div class="modal-content" @click.stop>
        <span class="close" @click="closeModal">&times;</span>
        <h2>Edit User</h2>
-      <form @submit.prevent="updateUser" >
+      <form @submit.prevent="updateUserData" >
         <div class="firstSecondC">
          <div class="firstContainer">
           <div class="group">
@@ -83,6 +84,10 @@
               <label class="EUA" for="email">Email :</label>
               <input class="champ" id="email" v-model="form.email" type="email" required>
             </div>
+            <div v-if="form.password" class="group">
+              <label for="password" class="EUA">Mot de passe :</label>
+              <input v-model="form.password" id="password" type="text" class="champ" />
+            </div>
           </div>
         </div>
       <div class="btn-MAJ"><button type="submit" class="MAJ">update</button></div> 
@@ -94,7 +99,7 @@
       <div class="modal-content" @click.stop>
         <span class="close" @click="closeAddUserModal">&times;</span>
         <h2>Add User</h2>
-        <form>
+        <form @submit.prevent="addUserData">
           <div class="group">
     <div class="button-group">
         <button
@@ -155,10 +160,10 @@
               </div>
             </div>
           </div>
-        </form>
-        <div class="btn-MAJ">
-          <button type="submit" class="MAJ">Add User</button>
+          <div class="btn-MAJ">
+          <button type="submit" class="MAJ">Add user</button>
         </div>
+        </form>
       </div>
       </div>
     </div>
@@ -169,16 +174,19 @@
   import axios from 'axios';
 
   const authToken = localStorage.getItem('authToken');
+
   const users = ref([]); 
   const fetchUsers = async () => {
   try {
-    const response = await axios.get('http://localhost:8000/api/users',{ headers: { 'Authorization': `Bearer ${authToken}`}}); 
+    const response = await axios.get('http://localhost:8000/api/users',
+    { headers: { 'Authorization': `Bearer ${authToken}`}}); 
     users.value = response.data; // Stocker les utilisateurs récupérés
   } catch (error) {
     console.error('Erreur lors de la récupération des utilisateurs:', error);
   }
 };
   const userType = ref('');
+  const selectedUserId = ref(null);
   const form = ref({
     firstname: '',
     lastname: '',
@@ -188,6 +196,7 @@
     grade:'',
     number:'',
     email: '',
+    password: '',
   });
   const searchQuery = ref('');
   
@@ -203,25 +212,48 @@
     user.selected = checked;
   });
 };
-const deleteUser = (userToDelete) => {
-  users.value = users.value.filter(user => user !== userToDelete);
-};
-const deleteSelectedUsers = () => {
-  users.value = users.value.filter(user => !user.selected);
+const deleteUser = async (userToDelete = null) => {
+  // If a single user is passed, delete that user, otherwise delete selected users
+  const selectedUserIds = userToDelete 
+    ? [userToDelete.id] // Handle single user deletion
+    : users.value.filter(user => user.selected).map(user => user.id); // Handle multiple user deletion
+
+  if (selectedUserIds.length === 0) {
+    alert('No users selected for deletion.');
+    return;
+  }
+
+  try {
+    const response = await axios.post(`http://localhost:8000/api/deleteUsers`, {
+      ids: selectedUserIds  
+    }, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (response.status === 200) {
+      // Remove deleted users from the frontend list
+      users.value = users.value.filter(user => !selectedUserIds.includes(user.id));
+      alert('Users deleted successfully');
+    }
+  } catch (error) {
+    console.error('Error deleting users:', error.response?.data || error.message);
+    alert('Error deleting users');
+  }
 };
 
 const isModalOpen = ref(false);
 
 const openModal = async (userId) => {
   isModalOpen.value = true;
+  selectedUserId.value = userId;
   try {
-    const response = await axios.get(`http://localhost:8000/api/user/${userId}`,{ headers: { 'Authorization': `Bearer ${authToken}`}});
+    const response = await axios.get(`http://localhost:8000/api/user/${userId}`,
+    { headers: { 'Authorization': `Bearer ${authToken}`}});
     const data = response.data;
 
     form.value.firstname = data.user.name;
     form.value.lastname = data.user.lastName;
     form.value.email = data.user.email;
-    
+    form.value.password = data.password || '';
     if (data.type === 'teacher') {
       form.value.grade = data.details.grade;
       userType.value = 'teacher';
@@ -236,9 +268,9 @@ const openModal = async (userId) => {
     console.error('Error fetching user details:', error);
   }
 };
-const updateUser = async () => {
+const updateUserData = async () => {
   try {
-    const response = await axios.put(`http://localhost:8000/api/updateUser/${userId}`, { headers: { 'Authorization': `Bearer ${authToken}`}},
+    const response = await axios.put(`http://localhost:8000/api/updateUser/${selectedUserId.value}`,
     { firstname: form.value.firstname,
       lastname: form.value.lastname,
       cin: form.value.cin,
@@ -246,12 +278,27 @@ const updateUser = async () => {
       specialty: form.value.specialty,
       grade: form.value.grade,
       number: form.value.number,
-      email: form.value.email,}
+      email: form.value.email,
+    },
+      { headers: { 'Authorization': `Bearer ${authToken}`}}
+
     );
     console.log('User updated successfully', response.data);
     alert('User updated successfully');
   } catch (error) {
-    console.error('Error updating user:', error.response.data);
+    if (error.response) {
+      // Server responded with a status other than 200
+      console.error('Error updating user:', error.response.data);
+      alert(`Error updating user: ${error.response.data.message || error.response.data}`);
+    } else if (error.request) {
+      // No response was received
+      console.error('No response received:', error.request);
+      alert('No response from the server. Please check your network connection.');
+    } else {
+      // Other errors
+      console.error('Error during request:', error.message);
+      alert(`Error: ${error.message}`);
+    }
   }
 };
 
@@ -276,15 +323,118 @@ const state = reactive({
   }
 });
 function setUserType(type) {
-        this.state.newUserType = type;
+    state.newUserType = type;
     }
 function openAddUserModal() {
   state.isAddUserModalOpen = true;
   state.newUserType = 'teacher'; 
 }
+const addUserData = async () => {
+  try {
+    // Make sure the password matches the password confirmation
+    function validateForm() {
+  let errors = [];
+  // Validation des champs communs
+  if (!state.newUserForm.firstname) {
+    errors.push('Firstname is required.');
+  }
+  if (!state.newUserForm.lastname) {
+    errors.push('Lastname is required.');
+  }
+  if (!state.newUserForm.email) {
+    errors.push('Email is required.');
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.newUserForm.email)) {
+    errors.push('Invalid email format.');
+  }
+  if (!state.newUserForm.password) {
+    errors.push('Password is required.');
+  } else if (state.newUserForm.password !== state.newUserForm.passwordConfirmation) {
+    errors.push('Passwords do not match.');
+  }
+  if (state.newUserForm.password.length !==8) {
+    errors.push('Password must not be greater or less than 8.');
+  }
+  // Validation des champs spécifiques à l'étudiant
+  if (state.newUserType === 'student') {
+    if (!state.newUserForm.cin || state.newUserForm.cin.length !== 8) {
+      errors.push('CIN is required and must be 8 characters.');
+    }
+    if (!state.newUserForm.specialty) {
+      errors.push('Specialty is required.');
+    }
+    if (!state.newUserForm.status) {
+      errors.push('Status is required.');
+    }
+    if (!state.newUserForm.phoneNumber || !/^\d{8}$/.test(state.newUserForm.phoneNumber)) {
+      errors.push('Number is required and must be a valid 8-digit number.');
+    }
+  }
+  // Validation des champs spécifiques à l'enseignant
+  if (state.newUserType === 'teacher') {
+    if (!state.newUserForm.grade) {
+      errors.push('Grade is required.');
+    }
+  }
+  // Affichage des erreurs s'il y en a
+  if (errors.length > 0) {
+    alert(errors.join('\n'));
+    return false;
+  }
+  return true;
+}
+if (!validateForm()) {
+    return;
+  }
+  if (state.newUserForm.password !== state.newUserForm.passwordConfirmation) {
+      alert("Passwords don't match");
+      return;
+    }  
+    // Construct the data based on the user type
+    const userData = {
+      firstname: state.newUserForm.firstname,
+      lastname: state.newUserForm.lastname,
+      email: state.newUserForm.email,
+      password: state.newUserForm.password,
+      type: state.newUserType // either 'teacher' or 'student'
+    };
 
+    if (state.newUserType === 'teacher') {
+      userData.grade = state.newUserForm.grade; // Add grade if it's a teacher
+    } else if (state.newUserType === 'student') {
+      userData.cin = state.newUserForm.cin;
+      userData.specialty = state.newUserForm.specialty;
+      userData.status = state.newUserForm.status;
+      userData.phoneNumber = state.newUserForm.phoneNumber;
+    }
+
+    // Make the API request to add the user
+    const response = await axios.post('http://localhost:8000/api/addUser', userData, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    if (response.status === 200) {
+      alert(`${state.newUserType === 'teacher' ? 'Teacher' : 'Student'} added successfully`);
+      closeAddUserModal(); // Close the modal after adding the user
+    }
+  } catch (error) {
+    console.error('Error adding user:', error.response?.data || error.message);
+    alert('Error adding user');
+  }
+}
 function closeAddUserModal() {
   state.isAddUserModalOpen = false;
+  state.newUserForm = {
+    firstname: '',
+    lastname: '',
+    grade: '',
+    cin: '',
+    status: '',
+    specialty: '',
+    phoneNumber: '',
+    email: '',
+    password: '',
+    passwordConfirmation: ''
+  };
 }
 onMounted(() => {
   fetchUsers(); 
@@ -293,6 +443,16 @@ onMounted(() => {
   </script>
   
   <style scoped>
+  .student-role {
+  color: #96ADD6; /* Blue color for students */
+  font-weight: bold;
+}
+
+.teacher-role {
+  color: #e85234; /* Red color for teachers */
+  font-weight: bold;
+}
+
   .user-management {
     padding: 20px;
   }

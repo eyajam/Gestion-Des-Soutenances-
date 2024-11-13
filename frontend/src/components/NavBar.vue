@@ -3,13 +3,19 @@
       <div class="navbar-logo">
         <img src="/images/ISG.png" alt="ISGT Logo">
       </div>
-     <!-- <div class="icon-container" >
-      <div class="navbar-icon" v-if="isLoggedIn"> 
-      <i class="fi fi-rs-circle-user"></i></div>
-    </div> --> 
+      <div v-if="timeRemaining && isUserLoggedIn && isTeacher && !isChronometerStopped">
+              <h5 style="margin-top:0;margin-bottom: 0; color:white; ">Remaining Time :</h5> 
+              <span style="color: white">{{ timeRemaining.days }} d : </span>  
+              <span style="color: white">{{ timeRemaining.hours }} h : </span> 
+              <span style="color: white">{{ timeRemaining.minutes }} m : </span>
+              <span style="color: white">{{ timeRemaining.seconds }} s </span>
+            </div>
+      <div v-else-if="isUserLoggedIn && isTeacher ">
+        <p v-if="!isChronometerStopped">The deadline has passed.</p>
+      </div>
     <div class="icon-container" v-if="isUserLoggedIn">
-      <div class="navbar-icon" style="font-size: 20px; color: #ff5b3ec8;">
-        <i class="fi fi-rr-bell-notification-social-media"></i></div>
+      <!-- <div class="navbar-icon" style="font-size: 20px; color: #ff5b3ec8;">
+        <i class="fi fi-rr-bell-notification-social-media"></i></div> -->
       <div class="navbar-icon" style="font-family: 'lato'; font-size: 17px;">{{ user.firstName }} {{ user.lastName }}</div>
       <div class="navbar-icon" @click="toggleDropdown" style="font-size: 30px;"> 
         <i class="fi fi-rs-circle-user"></i></div>
@@ -26,11 +32,15 @@
     
   </template>
   <script setup>
-  import { ref,onMounted } from 'vue';
+  import { ref,onMounted,onUnmounted } from 'vue';
   import { useRouter } from 'vue-router';
   import profileEdit from './profileEdit.vue';
+  import axios from 'axios';
 
+  
   const isUserLoggedIn = ref(false);
+  const isTeacher = ref(false);
+  const isChronometerStopped = ref(false); 
   const user = ref({
   firstName: '',
   lastName: ''
@@ -60,26 +70,80 @@
   const props = defineProps({
       visible: Boolean,
     });
-    const router = useRouter();
+const timeRemaining = ref(null);  // To store the remaining time
+let intervalId = null;
+const calculateTimeRemaining = (deadline) => {
+  const now = new Date();
+  const timeDiff = new Date(deadline) - now;
+
+  if (timeDiff > 0) {
+    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+
+    timeRemaining.value = { days, hours, minutes, seconds };
+  } else {
+    timeRemaining.value = null;  // Time has passed
+    clearInterval(intervalId);  // Stop the timer when the deadline has passed
+  }
+};
+
+const fetchDeadline = async (authToken) => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/getDd', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const deadline = response.data.end_date;
+    const status=response.data.status;
+
+    if (status === 'closed') {
+      isChronometerStopped.value = true;
+      return;
+    }
+    // Start the countdown
+    intervalId = setInterval(() => {
+      calculateTimeRemaining(deadline);
+    }, 1000);
+  } catch (error) {
+    console.error('Error fetching deadline:', error);
+  }
+};
+
+  const router = useRouter();
 onMounted(() => {
   const authToken = localStorage.getItem('authToken'); 
+  const userRole = localStorage.getItem('userRole');
   if (authToken) {
     isUserLoggedIn.value = true;
+    
     const userDetails = JSON.parse(localStorage.getItem('userDetails'));
     if (userDetails) {
       user.value.firstName =capitalizeFirstLetter(userDetails.firstName);
       user.value.lastName =capitalizeFirstLetter(userDetails.lastName);
     }
+    if( userRole === 'teacher') {
+      isTeacher.value = true;
+      fetchDeadline(authToken);
+    }
   }
+
 });
 const signOut = () => {
   localStorage.removeItem('authToken');
   localStorage.removeItem('userDetails');
   localStorage.removeItem('userRole');
   localStorage.removeItem('email');
+  localStorage.removeItem('schedule');
   isUserLoggedIn.value = false;
   router.push({ name: 'login' });
 };
+onUnmounted(() => {
+  // Clear interval when component is unmounted to prevent memory leaks
+  if (intervalId) {
+    clearInterval(intervalId);
+  }
+});
 </script>
   
   <style scoped>

@@ -2,7 +2,7 @@
   <div class="complaint-form1">
     <h2 class="comp">Complaint</h2>
     <p><strong> {{ email }} " {{ specialty }} "</strong></p>
-    <form class="form5" @submit.prevent="submitForm">
+    <form class="form5" @submit.prevent="submitComplaint">
       <div class="form-group">
         <label class="labels2" for="title">Object :</label>
         <input class="title" type="text" id="title" v-model="form.Object" />
@@ -42,7 +42,7 @@ const validateForm = () => {
   }
   return true;
 };
-const submitForm = async () => {
+const submitComplaint = async () => {
   try {
     if (!validateForm()) {
     return; }

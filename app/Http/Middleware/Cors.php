@@ -16,7 +16,7 @@ class Cors
      */
         public function handle($request, Closure $next)
         {
-       /*  $response = $next($request);
+         $response = $next($request);
         $allowedOrigins = ['http://localhost:5173'];  // Array of origins you want to allow
         $origin = $request->headers->get('origin');
     
@@ -29,11 +29,11 @@ class Cors
         $response->headers->set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With');
     
-        return $response; */
-        return $next($request)
+        return $response; 
+        /* return $next($request)
         ->header('Access-Control-Allow-Origin', 'http://localhost:5173')
         ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization'); */
     }
     
 }

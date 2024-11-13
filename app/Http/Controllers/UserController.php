@@ -12,6 +12,8 @@ use App\Mail\VerificationEmail;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -103,15 +105,29 @@ public function registerUser(Request $request)
             'password' =>bcrypt($user->password),
         ]);
     }
-    elseif ($request->role === 'teacher') {
-     Teacher::create([
-        'user_id' => $user->id, 
-        'first_name' => $request->firstname,
-        'last_name' => $request->lastname,
-        'grade' => $request->grade,
-        'email' => $request->email,
-        'password' =>bcrypt($request->password),
-    ]);
+    elseif ($role === 'teacher') {
+        // Set `is_president` and `is_rapporteur` based on the grade
+        $grade = strtolower($request->grade);
+        $isPresident = false;
+        $isRapporteur = false;
+
+        if (in_array($grade, ['maitre assistant', 'professeur', 'maitre de conf'])) {
+            $isPresident = true;
+            $isRapporteur = true;
+        } elseif (in_array($grade, ['assistant', 'vacataire'])) {
+            $isRapporteur = true;
+        }
+
+        Teacher::create([
+            'user_id' => $user->id, 
+            'first_name' => $request->firstname,
+            'last_name' => $request->lastname,
+            'grade' => $request->grade,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'is_president' => $isPresident,
+            'is_rapporteur' => $isRapporteur,
+        ]);
     }elseif ($request->role === 'admin') {
         $user->verification_code = null; 
         $user->save();
@@ -123,23 +139,64 @@ public function registerUser(Request $request)
 public function login(Request $request)
 {
     $credentials = $request->only('email', 'password');
-    if (Auth::attempt($credentials)) {
-        $user = Auth::user();
-        $token=$user->createToken('authToken')->plainTextToken;
+
+    // Trouver l'utilisateur par email
+    $user = User::where('email', $credentials['email'])->first();
+
+    if (!$user) {
+        return response()->json(['message' => 'You do not have an account, Or invalid email.'], 401);
+    }
+
+    // Vérification du mot de passe crypté
+    if ($user->isPasswordEncrypted()) {
+        try {
+            // Déchiffrer le mot de passe stocké
+            $decryptedPassword = Crypt::decryptString($user->password);
+            $deserializedPassword = unserialize($decryptedPassword);
+            if ($deserializedPassword === $credentials['password'])  {
+                // Générer un token d'authentification
+                $token = $user->createToken('authToken')->plainTextToken;
+
+                return response()->json([
+                    'message' => 'Login successful',
+                    'role' => $user->role,
+                    'email' => $user->email,
+                    'token' => $token,
+                    'userDetails' => [
+                        'firstName' => $user->name,
+                        'lastName' => $user->lastName
+                    ]
+                ]);
+            } else {
+                return response()->json(['message' => 'Invalid password'], 401);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Invalid password'], 401);
+        }
+    }
+
+    // Vérification du mot de passe haché
+    if (Hash::check($credentials['password'], $user->password)) {
+        // Générer un token d'authentification
+        $token = $user->createToken('authToken')->plainTextToken;
+
         return response()->json([
             'message' => 'Login successful',
             'role' => $user->role,
-            'email'=> $user->email,
-            'token' => $token, 
+            'email' => $user->email,
+            'token' => $token,
             'userDetails' => [
-                'firstName' => $user->name, 
-                'lastName' => $user->lastName   
+                'firstName' => $user->name,
+                'lastName' => $user->lastName
             ]
         ]);
-    } else {
-        return response()->json(['message' => 'Invalid credentials'], 401);
     }
+
+    // Si le mot de passe est incorrect
+    return response()->json(['message' => 'Invalid password.'], 401);
 }
+
+
 public function getUser()
 {
     // Récupérer l'utilisateur authentifié
@@ -171,7 +228,6 @@ public function updateUser(Request $request)
             'firstname' => 'required|string|max:255',
             'lastname' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
             'cin' => 'required_if:role,student|string|max:8',
             'status' => 'required_if:role,student|string|max:255',
             'specialty' => 'required_if:role,student|string|max:255',
@@ -187,7 +243,7 @@ public function updateUser(Request $request)
         $user->name = $request->firstname;
         $user->lastName = $request->lastname;
         $user->email = $request->email;
-        $user->password = bcrypt($request->password);
+        
 
         $user->save();
 
@@ -213,4 +269,21 @@ public function updateUser(Request $request)
 
         return response()->json(['message' => 'User updated successfully']);
     }
+    public function resetPassword(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email|exists:users,email',
+        'password' => 'required|min:8|confirmed',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+    if ($user) {
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json(['message' => 'Password updated successfully!'], 200);
+    }
+
+    return response()->json(['message' => 'User not found'], 404);
+}
 }

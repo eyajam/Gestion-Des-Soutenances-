@@ -87,7 +87,7 @@ const form = ref({
     passwordConfirmation: '',
     role: props.userType
   });
-const grades = ['maître assistant', 'assistant', 'vacataire', 'contractuel', 'PES'];
+const grades = ['Professeur','maître de conf','maître assistant', 'assistant', 'vacataire', 'contractuel', 'PES'];
 const updateGrade = (newGrade) => {
   form.value.grade = newGrade;
 };

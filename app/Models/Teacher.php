@@ -8,13 +8,18 @@ use Illuminate\Database\Eloquent\Model;
 class Teacher extends Model
 {
     use HasFactory;
+    protected $primaryKey = 'user_id';
     protected $fillable = [
         'user_id',
         'first_name',
         'last_name',
         'grade',
         'email',
-        'password'
+        'password',
+        'remaining_availabilities',
+        'is_president',
+        'is_rapporteur',
+        'is_successive'
     ];
     
     protected $hidden = [
@@ -22,6 +27,10 @@ class Teacher extends Model
     ];
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class,'user_id','id');
+    }
+    public function availabilities()
+    {
+        return $this->hasMany(Availability::class, 'teacher_id','user_id');
     }
 }

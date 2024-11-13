@@ -44,14 +44,20 @@ public function getStudentsBySpecialty(Request $request)
     public function store(Request $request)
     {
         $student = Auth::user(); 
-        $studentId = $student->id;
+        $studentId = $student->id;//36
          // Check if the user already has a project submitted
         $existingProject = Project::where('student_id', $studentId)->first();
         if ($existingProject) {
         return response()->json([
             'error' => 'You have already submitted your project. Please try to modify your existing project if needed.'
-        ], 400); // 400 Bad Request
+        ], 400); 
         }
+        $studentEmail = $student->email;
+
+    $existingProject1 = Project::where('partner', $studentEmail)->first();
+
+    $projectGroup = $existingProject1->project_group ?? Project::max('project_group') + 1;
+
         $validated = $request->validate([
             'title' => 'nullable|string|max:255', 
             'project_type' => 'required|string|max:255', 
@@ -68,6 +74,7 @@ public function getStudentsBySpecialty(Request $request)
             'partner' => $request->partner,
             'company' => $request->company,
             'teacher_email' => $request->teacher_email,
+            'project_group' => $projectGroup
         ]);
         if ($request->hasFile('specs')) {
             $file = $request->file('specs');

@@ -1,7 +1,7 @@
 <template>
     <div>
       <div class="dropdown">
-        <input type="text" class="input" v-model="selected" readonly @click="toggleDropdown" required>
+        <input type="text" class="input" v-model="selected" @click="toggleDropdown" >
         <span class="arrow" @click="toggleDropdown">&#9660;</span>
         <ul v-if="isOpen" class="dropdown-menu">
           <li v-for="option in options" :key="option" @click="selectOption(option)">
@@ -18,8 +18,7 @@
   const props = defineProps({
     modelValue: String,
     options: {
-    type: Array,
-    required: true
+    type: Array
     }
   });
   

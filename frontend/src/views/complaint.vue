@@ -1,7 +1,7 @@
 <template>
     <div class="complaint-form">
       <h2>Complaint</h2>
-      <form class="form5" @submit.prevent="submitForm">
+      <form class="form5" @submit.prevent="submitComplaint">
         <div class="radio-group">
           <label class="Ltype">
             <input class="Itype" type="radio" v-model="form.complaint_type" value="editForm" />
@@ -38,7 +38,7 @@ const form =ref({
 })
 const router = useRouter();
 
-const submitForm = async () => {
+const submitComplaint = async () => {
   if (!form.value.complaint_type || !form.value.object || !form.value.message) {
     alert('Please fill out all fields before submitting !');
     return;

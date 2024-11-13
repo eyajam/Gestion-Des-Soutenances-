@@ -109,7 +109,8 @@
 };
 const fetchTeacherEmails = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/teachers',{headers: { 'Authorization': `Bearer ${authToken}`}});
+        const response = await axios.get(`http://localhost:8000/api/teachersEmail`,
+        {headers: { 'Authorization': `Bearer ${authToken}`}});
         teachers.value = response.data;
       } catch (error) {
         console.error('Erreur lors de la récupération des emails des enseignants', error);
@@ -135,24 +136,12 @@ const validateForm = () => {
   // Clear errors
   let errors = [];
 
-  if (form.value.title && form.value.title.length > 255) {
-    errors.push('Project title must be less than 255 characters.');
-  }
-
   if (!form.value.ProjectType) {
     errors.push('Project type is required.');
   } 
 
   if (form.value.ProjectType === 'binomial' && !form.value.partner) {
     errors.push("Partner is required for binomial projects.");
-  }
-
-  if (form.value.company && form.value.company.length > 255) {
-    errors.push('Company name must be less than 255 characters.');
-  }
-
-  if (form.value.teacher_email && form.value.teacher_email.length > 255) {
-    errors.push('Teacher name must be less than 255 characters.');
   }
 
   if (form.value.specs && form.value.specs.name && typeof form.value.specs.name === 'string') {

@@ -6,9 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\Teacher;
 use App\Models\Project;
 use App\Models\Student;
+use App\Models\Defense;
 use App\Models\teacherComplaint;
 use App\Models\Availability;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class teacherController extends Controller
 {
@@ -101,7 +103,7 @@ public function store(Request $request)
 
     return response()->json($availability, 201);
 }
-public function index()
+public function getAvailibility()
 {
     $teacherID = Auth::user()->id;
     $availabilities = Availability::where('teacher_id', $teacherID)->get();
@@ -129,6 +131,53 @@ public function update(Request $request, $id)
     $availability = Availability::findOrFail($id);
     $availability->update($request->all());
 
-    return response()->json($availability);
+    return response()->json($availability,200);
+}
+public function addProject(Request $request)
+    {
+        // Validate the incoming request
+        $request->validate([
+            'student_id' => 'required|exists:projects,student_id',
+            'teacher_email' => 'required|email'
+        ]);
+
+        // Find the project by student_id (user_id)
+        $project = Project::where('student_id', $request->student_id)->first();
+
+        // If the project exists, update the teacher_email
+        if ($project) {
+            $project->teacher_email = $request->teacher_email;
+            $project->save();
+
+            return response()->json(['message' => 'Project added successfully'], 200);
+        }
+
+        return response()->json(['error' => 'Project not found'], 404);
+    }
+    // In your controller
+public function getDeadline()
+{
+    $period = DB::table('unsupervised_student_periods')->where('status', 'open')->first();
+
+    if ($period) {
+        return response()->json([
+            'end_date' => $period->end_date,
+            'status'=> 'open'
+        ]);
+    }
+
+    return response()->json(['error' => 'No active period found','status'=> 'closed']);
+}
+public function getTeacherPlanning(Request $request)
+{
+    // Get the logged-in teacher's email
+    $teacherEmail = $request->input('email');
+
+    // Query defenses where the logged-in teacher is the encadrant
+    $planning = Defense::where('email_encadrant', $teacherEmail)
+                        ->orWhere('email_president', $teacherEmail)
+                        ->orWhere('email_rapporteur', $teacherEmail)
+                        ->get();
+    return response()->json($planning);
 }
 }

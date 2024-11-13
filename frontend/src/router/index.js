@@ -17,6 +17,8 @@ import stats from "../views/stats.vue";
 import complaints from "../views/complaints.vue";
 import users from "../views/users.vue";
 import superviseAssign from "../views/superviseAssign.vue";
+import GeneratePlanning from "../views/GeneratePlanning.vue";
+
 const routes = [
    {
       path: '/dashboard',
@@ -44,11 +46,11 @@ const routes = [
           name: 'superviseAssign',
           component: superviseAssign
         },
-       /* {
-          path: 'generate-planning',
+        {
+          path: 'generatePlanning',
           name: 'GeneratePlanning',
-          component: () => import('../views/GeneratePlanning.vue') // Si vous avez un autre composant pour cela
-        } */
+          component: GeneratePlanning
+        } 
       ]
    },  
    {
@@ -141,7 +143,7 @@ router.beforeEach((to, from, next) => {
       } else {
         next();
       }
-    } else if (['stats', 'complaints', 'users', 'superviseAssign'].includes(to.name)) {
+    } else if (['stats', 'complaints', 'users', 'superviseAssign','GeneratePlanning'].includes(to.name)) {
       if (!authToken || userRole !== 'admin') {
         next({ name: 'login' });
       } else {

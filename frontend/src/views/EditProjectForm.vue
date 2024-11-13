@@ -116,7 +116,8 @@
 const fetchTeacherEmails = async () => {
       try {
         const response = await axios.get('http://localhost:8000/api/teachers',
-        {  headers: { 'Authorization': `Bearer ${authToken}` },});
+        { headers: { 'Authorization': `Bearer ${authToken}` }
+        });
         teachers.value = response.data;
       } catch (error) {
         console.error('Erreur lors de la récupération des emails des enseignants', error);
@@ -189,6 +190,7 @@ const handleSubmit = async () => {
     if (!validateForm()) {
     return; // Stop submission if validation fails
   }
+ 
   await axios.get('http://localhost:8000/sanctum/csrf-cookie');
   const response = axios.put('http://localhost:8000/api/update', {
   project_title: form.value.project_title,
@@ -196,13 +198,8 @@ const handleSubmit = async () => {
   teacher_email: form.value.teacher_email,
   partner: form.value.partner,
   company: form.value.company,},
-  {headers: {'Authorization': `Bearer ${authToken}` }})
-.then(response => {
-  console.log(response.data);
-})
-.catch(error => {
-  console.error('Error:', error.response.data);
-});
+  {headers: {'Authorization': `Bearer ${authToken}` }});
+  console.log('Project updated successfully:', response.data);
 if (form.value.specs) {
       const specsData = new FormData();
       specsData.append('specs', form.value.specs);

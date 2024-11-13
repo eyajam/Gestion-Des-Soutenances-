@@ -22,10 +22,7 @@
          <label class="EUA" for="cin">CIN student :</label>
          <input type="text" class="champ" id="cin" v-model="form.cin" required>
        </div>
-       <div v-if="userType === 'student'" class="group">
-         <label class="EUA" for="cin">Status (new or repeating) :</label>
-         <input type="text" class="champ" id="CIN" v-model="form.status" required>
-       </div>
+       
        <div v-if="userType === 'student'" class="group">
          <label class="EUA" for="specialty">Specialty :</label>
          <input class="champ" id="specialty" v-model="form.specialty" type="text"/>
@@ -40,14 +37,10 @@
            <label class="EUA" for="email">Email :</label>
            <input class="champ" id="email" v-model="form.email" type="email" required>
          </div>
-         <div class="group">
-           <label class="EUA" for="password">Password :</label>
-           <input class="champ" id="password" v-model="form.password" type="password" required>
-         </div>
-         <div class="group">
-           <label class="EUA" for="password">Confirm your password :</label>
-           <input class="champ" id="password_confirmation" v-model="form.passwordConfirmation" type="password" required>
-         </div>
+         <div v-if="userType === 'student'" class="group">
+         <label class="EUA" for="cin">Status (new or repeating) :</label>
+         <input type="text" class="champ" id="CIN" v-model="form.status" required>
+       </div>
        </div>
      </div>
    </form>
@@ -72,8 +65,7 @@ import axios from 'axios';
     grade:'',
     number:'',
     email: '',
-    password: '',
-    passwordConfirmation: '',
+    
 
   });
   const props = defineProps({
@@ -120,8 +112,7 @@ const updateUserData = async () => {
       grade: form.value.grade,
       number: form.value.number,
       email: form.value.email,
-      password: form.value.password,
-      password_confirmation: form.value.passwordConfirmation,
+      
     }, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });

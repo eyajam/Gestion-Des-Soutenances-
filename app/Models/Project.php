@@ -16,7 +16,9 @@ class Project extends Model
         'company',
         'teacher_email',
         'specs',
-        'original_filename'];
+        'original_filename',
+        'project_group',
+    ];
    
 public function student()
     {

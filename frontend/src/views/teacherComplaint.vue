@@ -1,8 +1,8 @@
- <template>
-    <div class="complaint-container" :class="{ 'blur-background': showInfo }">
+<template>
+<div class="complaint-container" :class="{ 'blur-background': showInfo }">
       <h3 class="complaint">Complaints & Projects</h3>
-      <div class="Gfonc">
-    <div class="fonc-group">
+    <div class="Gfonc">
+      <div class="fonc-group">
         <button
             class="fonc"
             :class="{ active: selectedType === 'Complaints' }"
@@ -13,50 +13,56 @@
             :class="{ active: selectedType === 'Projects' }"
             @click="choisenType('Projects')">Projects
         </button>
+      </div>
     </div>
-</div>
-  <div class="studsPrjts" :class="{ 'blur-background': showInfo }">
-    <div v-if="selectedType === 'Complaints'">
-      <div v-for="user in users" :key="user.id" class="complaint-item">
+<div class="studsPrjts" :class="{ 'blur-background': showInfo }">
+  <div v-if="selectedType === 'Complaints'">
+    <div v-for="user in users" :key="user.id" class="complaint-item">
         <div class="username">
             <i class="fi fi-ts-user-graduate"></i>
             {{ user.email }}
             " {{ user.specialty }} "
-          </div>
+        </div>
         <div class="icons">
           <i class="fi fi-rr-file-circle-info" @click="showInfoDiv(user)"></i>  
           <i style="margin-left: 12px;" class="fi fi-rr-paper-plane" @click="navigateToComplaint(user)"></i>
         </div>
-      </div>
     </div>
-
-    <div v-if="selectedType === 'Projects'">
-      <div v-if="projects.length > 0">
-        <div style="display: flex; padding-bottom: 15px; color: #244a62; gap: 15px;">
-        <div>Add a new project from these unsupervised projects :</div>
-        <dropDown2 :modelValue="selectedSpecialty" :options="specialties" @update:modelValue="updateSpecialty"/></div>
-        <div v-for="project in projects" :key="project.id" class="complaint-item">
-          <div class="username">
-            <i class="fi fi-ts-user-graduate"></i>
-            {{ project.username }}
-            " {{ project.specialty }} "
-          </div>
-          <div class="icons2">
-            <i class="fi fi-rr-file-circle-info"></i>  
-            <div style="margin-left: 12px; background-color:  #367298; border-radius:15px; padding: 3px; cursor: pointer;">
-              <div style="color: #fff; padding: 3px; font-size: 14px;">Add Project</div> 
-            </div>
-          </div>
+  </div>
+</div>  
+<div v-if="selectedType === 'Projects'" class="studsPrjts">
+    <div style="display: flex; padding-bottom: 15px; color: #244a62; gap: 15px;">
+      <div>Add a new project from these unsupervised projects :</div>
+        <dropDown2 :modelValue="selectedSpecialty" :options="specialties" @update:modelValue="updateSpecialty"/>
+    </div>
+  <div v-if="filteredProjects.length > 0"> 
+    <div v-for="project in filteredProjects" :key="project.cin" class="complaint-item">
+      <div class="username">
+        <i class="fi fi-ts-user-graduate"></i>
+        {{ project.first_name }} {{ project.last_name }} - {{ project.project_type }}<span v-if="project.partner"> -<strong>Partner </strong>: {{ project.partner }}</span>
+      </div>
+      <div class="icons2">
+        <div @click="addProject(project)"
+         style="margin-left: 12px; background-color: #367298; border-radius: 10px; padding: 3px 10px; cursor: pointer;">  
+          <div style="color: #fff; padding: 3px; font-size: 14px;">Add Project</div> 
         </div>
       </div>
-      <div v-else style="position: relative; bottom: 10px;">
-        <p class="no-projects-message" style="color: #dfdfdf; font-weight: bold; letter-spacing: 1px;">
-          No unsupervised<br>projects found.</p>
-      </div>  
     </div>
   </div>
-      <router-link class="home2" :to="{ name: 'TeacherDashboard'}">⬅ Return to your account</router-link>
-  </div>
+  <div v-if="projects.length > 0 && filteredProjects.length ===0 ">
+    <p style="color: #244a62; font-weight: bold;">
+      There are no projects for the speciality selected. 
+    </p>
+  </div>   
+  <div v-if="projects.length === 0" style="position: relative; bottom: 10px;">
+    <p class="no-projects-message" style="color: #dfdfdf; font-weight: bold; letter-spacing: 1px;">
+      No unsupervised<br>projects found.
+    </p>
+  </div>  
+</div> 
+      <router-link class="home2" :to="{ name: 'TeacherDashboard'}">⬅ Return to your account</router-link>     
+
+</div>
   <div v-if="showInfo" class="info-popup">
       <div class="info-content">
         <span @click="hideInfoDiv" class="close-btn">&times;</span>
@@ -76,19 +82,20 @@
   </div>    
   </template>
   <script setup>
-  import { ref,onMounted } from 'vue';
+  import { ref,onMounted,computed } from 'vue';
   import { useRouter } from 'vue-router';
   import dropDown2 from '../components/dropDown2.vue';
   import axios from 'axios';
-
+  import { eventBus } from '../eventBus';
 
   const authToken = localStorage.getItem('authToken');
+  const teacherEmail = localStorage.getItem('email');
   const selectedType = ref('Complaints');
   const users = ref([]);
 
   const showInfo = ref(false);
   const currentItem = ref(null);
-
+  
 const showInfoDiv = (item) => {
   currentItem.value = item;
   showInfo.value = true;
@@ -125,7 +132,6 @@ const fetchProjectDetails = () => {
     console.error("L'email n'est pas défini pour l'utilisateur sélectionné.");
     return;
   }
-
   axios.post('http://localhost:8000/api/get-project-details', { email: currentItem.value.email  },
     { headers: {'Authorization': `Bearer ${authToken}`},
       withCredentials: true,
@@ -144,16 +150,47 @@ const fetchProjectDetails = () => {
       console.error('Error fetching project details:', error);
     });
 };
-const selectedSpecialty = ref('specialty');
+const selectedSpecialty = ref('');
 const specialties = ['BIS', 'BI', 'Accounting', 'Finance', 'Marketing','Management','HRM','BE','FEE'];
 const updateSpecialty = (newSpecialty) => {
   selectedSpecialty.value = newSpecialty;
 };
-  const projects = ref([
-   { id: 1, username: 'aziz gharbi', specialty: 'CS' },
-   { id: 2, username: 'mohamed jammoussi', specialty: 'IT' }, 
-  // Add more projects or students without supervisors
-]);
+const projects = ref([]);
+const fetchProjects = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/getUnsupervisedStudents',
+    { headers: {'Authorization': `Bearer ${authToken}`}});
+    projects.value = response.data;
+  } catch (error) {
+    console.error('Error fetching unsupervised projects:', error);
+  }
+};
+const filteredProjects = computed(() => {
+  if (!selectedSpecialty.value) {
+    return projects.value;  // Return all projects if no specialty is selected
+  }
+  return projects.value.filter(project => project.specialty === selectedSpecialty.value);
+});
+// Listen for the 'requestSent' event
+eventBus.on('requestSent', () => {
+  fetchProjects(); // Refresh the projects list when the event is emitted
+});
+
+const addProject = async (project) => {
+  try {
+    const response = await axios.post('http://localhost:8000/api/addProject', {
+      student_id: project.student_id,
+      teacher_email: teacherEmail
+    }, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    // Remove the project from the list after successful assignment
+    projects.value = projects.value.filter(p => p.student_id !== project.student_id);
+    alert('student added successfully !');
+  } catch (error) {
+    console.error('Error assigning project:', error);
+  }
+};
   const router = useRouter();
   const navigateToComplaint = (user) => {
   router.push({ name: 'complaintT', params: { username: user.email, specialty: user.specialty } });
@@ -164,8 +201,10 @@ const choisenType=(type) => {
     }
     onMounted(() => {
       fetchStudents(); 
+      fetchProjects();
     });    
   </script>
+
   <style scoped>
   .complaint-container {
     width: 630px;
@@ -263,7 +302,7 @@ const choisenType=(type) => {
   padding: 0 10px;
 }
 .studsPrjts::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 .studsPrjts::-webkit-scrollbar-track {
   background: transparent; 
