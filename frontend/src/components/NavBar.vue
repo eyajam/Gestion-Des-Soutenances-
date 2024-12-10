@@ -134,7 +134,6 @@ const signOut = () => {
   localStorage.removeItem('userDetails');
   localStorage.removeItem('userRole');
   localStorage.removeItem('email');
-  localStorage.removeItem('schedule');
   isUserLoggedIn.value = false;
   router.push({ name: 'login' });
 };

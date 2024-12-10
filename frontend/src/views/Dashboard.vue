@@ -67,7 +67,7 @@
   localStorage.removeItem('userDetails');
   localStorage.removeItem('userRole');
   localStorage.removeItem('email');
-  localStorage.removeItem('schedule');
+  
   router.push({ name: 'login' });
 };
 const timeRemaining = ref(null);  // To store the remaining time

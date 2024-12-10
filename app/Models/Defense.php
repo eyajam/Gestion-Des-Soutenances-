@@ -37,4 +37,9 @@ class Defense extends Model
         return $this->belongsTo(User::class, 'email_encadrant', 'email');
     }
 
+    public static function deleteDefenses()
+    {
+        return self::truncate(); // Efficiently empties the table
+    }
+
 }

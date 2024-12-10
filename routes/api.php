@@ -79,7 +79,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::post('/generatePlanning', [adminController::class, 'generatePlanning']);
     Route::post('/generateFile', [adminController::class,'generateFile']);
     Route::post('/teachersPlanningType', [adminController::class,'teachersPlanningType']);
-   
+    Route::delete('/defenses', [adminController::class, 'deleteAll'])->name('defenses.deleteAll');
 });
 
 });

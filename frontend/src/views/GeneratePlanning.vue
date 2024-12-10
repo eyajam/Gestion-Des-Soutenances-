@@ -87,7 +87,8 @@
       </table>
     </div>
       <!-- Bottom Section with Buttons -->
-      <div class="button-section">
+      
+      <div class="button-section"> 
         <button class="btns" style="background-color: #ff6c1fca;color: white;"
          @click="generateAndDownloadFile('student')">Generate Student Planning</button>
         <button class="btns" style="background-color: #76b3d0ca;color: white;" 
@@ -95,6 +96,9 @@
         <button class="btns" style="background-color: #c6da81;color: white;" 
         @click="generateAndDownloadFile('admin')">Generate Admin Planning</button>
       </div>
+      <button class="old-plan" style="background-color: red; color: white;"@click="deleteSchedule()">
+        <i class="fi fi-sr-trash" style="position: relative; top: 2px; margin-right: 5px;"></i>
+         Old planning</button>
     </div>
   </template>
   
@@ -265,6 +269,23 @@ function generateAndDownloadFile(type) {
             });
     }
 }
+async function deleteDefenses() {
+  if (confirm("Are you sure you want to delete all defenses? This action cannot be undone.")) {
+    try {
+      const response = await axios.delete('http://localhost:8000/api/defenses',
+        { headers: { 
+          'Authorization': `Bearer ${authToken}`,}}
+      );
+      alert(response.data.message); // Show success message
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete defenses. Please try again.");
+    }
+  }}
+function deleteSchedule() {
+  localStorage.removeItem('schedule');
+  deleteDefenses(); 
+}
 
 
   
@@ -322,6 +343,12 @@ function generateAndDownloadFile(type) {
   </script>
   
   <style scoped>
+  .old-plan{
+    position: relative;
+    left: 400px;
+    bottom: 460px;
+    padding: 6px;
+  }
   .planning-container {
     display: flex;
     flex-direction: column;

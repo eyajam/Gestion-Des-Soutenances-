@@ -1024,7 +1024,15 @@ function findEncadrantWithAvailability($project, $date, $hour,$planningTypes ,$a
 
     return response()->json(['error' => 'Invalid type provided'], 400);
 }
-    
+public function deleteAll()
+{
+    try {
+        Defense::deleteDefenses(); // Call the model's static method
+        return response()->json(['message' => 'All defenses deleted successfully.'], 200);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Failed to delete defenses.', 'details' => $e->getMessage()], 500);
+    }
+}
 }
 
 
